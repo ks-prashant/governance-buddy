@@ -24,15 +24,30 @@ export interface LlmMessage {
   content: string;
 }
 
+/** A single tool definition, JSON-Schema input — used to force structured output
+ *  (the Messages API has no bare "response_format"; forcing a tool call is the
+ *  reliable way to get a schema-shaped JSON object back). */
+export interface LlmTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
 export interface LlmOptions {
   model: string;
   system?: SystemPrompt;
   messages: LlmMessage[];
   maxTokens: number;
-  /** Adaptive thinking effort. Omit to disable extended thinking. */
+  /** Adaptive thinking effort. Omit to disable extended thinking.
+   *  NOTE: incompatible with a forced `toolChoice` — the API requires "auto" tool
+   *  choice when thinking is enabled. Don't set both. */
   effort?: "low" | "medium" | "high";
   temperature?: number;
   stopSequences?: string[];
+  /** Tools available to this call (used for forced structured-output extraction). */
+  tools?: LlmTool[];
+  /** Force a specific tool call so the reply is a single structured object. */
+  toolChoice?: { type: "tool"; name: string };
   /** Abort/timeout signal — the orchestrator budgets per-stage timeouts (system design §8.3). */
   signal?: AbortSignal;
 }
@@ -44,8 +59,15 @@ export interface LlmUsage {
   cache_creation_input_tokens?: number;
 }
 
+export interface LlmToolUse {
+  name: string;
+  input: unknown;
+}
+
 export interface LlmResult {
   text: string;
+  /** Populated when the model made tool calls (e.g. the forced structured-output tool). */
+  toolUses: LlmToolUse[];
   usage: LlmUsage;
   stopReason: string | null;
   raw: unknown;
@@ -72,6 +94,8 @@ export async function llm(opts: LlmOptions): Promise<LlmResult> {
     // Extended thinking with an effort hint. The map step runs at effort:high.
     body.thinking = { type: "enabled", effort: opts.effort };
   }
+  if (opts.tools) body.tools = opts.tools;
+  if (opts.toolChoice) body.tool_choice = opts.toolChoice;
 
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
@@ -90,7 +114,7 @@ export async function llm(opts: LlmOptions): Promise<LlmResult> {
   }
 
   const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
+    content?: Array<{ type: string; text?: string; name?: string; input?: unknown }>;
     usage?: LlmUsage;
     stop_reason?: string | null;
   };
@@ -100,8 +124,13 @@ export async function llm(opts: LlmOptions): Promise<LlmResult> {
     .map((b) => b.text as string)
     .join("");
 
+  const toolUses: LlmToolUse[] = (data.content ?? [])
+    .filter((b) => b.type === "tool_use" && typeof b.name === "string")
+    .map((b) => ({ name: b.name as string, input: b.input }));
+
   return {
     text,
+    toolUses,
     usage: data.usage ?? { input_tokens: 0, output_tokens: 0 },
     stopReason: data.stop_reason ?? null,
     raw: data,

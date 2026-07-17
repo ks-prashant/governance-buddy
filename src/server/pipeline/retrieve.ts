@@ -1,0 +1,185 @@
+/**
+ * Hybrid retrieval (system design §6.2–§6.4, build plan §C).
+ *
+ * For each sub-query: dense (pgvector cosine) + keyword (Postgres FTS) search,
+ * fused with Reciprocal Rank Fusion. Candidates are merged across all sub-queries
+ * (max fused score wins per chunk), then handed to the reranker (rerank.ts) against
+ * the ORIGINAL input text, and finally expanded to their parent articles.
+ *
+ * SERVER-ONLY. Takes a Supabase client so callers control which client (admin vs.
+ * anon) is used; the retrieval endpoint uses the service-role admin client.
+ */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { embedQuery } from "./embed";
+import { rerank, type RerankResult } from "./rerank";
+import { RETRIEVAL } from "./config";
+import type { QueryUnderstanding } from "./understand";
+
+export interface ChunkCandidate {
+  id: string;
+  parent_id: string;
+  framework_id: string;
+  hierarchy_path: string[];
+  citation_label: string;
+  text: string;
+}
+
+export interface ScoredCandidate extends ChunkCandidate {
+  /** Best fused RRF score seen for this chunk across all sub-queries. */
+  fusedScore: number;
+}
+
+export interface RerankedCandidate extends ChunkCandidate {
+  rerankScore: number;
+}
+
+export interface ParentGroup {
+  parent_id: string;
+  framework_id: string;
+  hierarchy_path: string[];
+  citation_label: string;
+  text: string;
+  source_url: string | null;
+  /** Chunk ids that were retrieved under this parent, with their rerank scores. */
+  supporting_chunks: Array<{ id: string; citation_label: string; rerankScore: number }>;
+}
+
+export async function getActiveSnapshotId(db: SupabaseClient): Promise<string> {
+  const { data, error } = await db
+    .from("corpus_snapshots")
+    .select("id")
+    .eq("status", "active")
+    .single();
+  if (error || !data) throw new Error(`No active snapshot: ${error?.message ?? "none found"}`);
+  return data.id as string;
+}
+
+/** Reciprocal Rank Fusion over one or more ranked id lists (system design §6.2). */
+function rrfFuse(rankedLists: string[][], k = RETRIEVAL.rrfK): Map<string, number> {
+  const scores = new Map<string, number>();
+  for (const list of rankedLists) {
+    list.forEach((id, idx) => {
+      const rank = idx + 1;
+      scores.set(id, (scores.get(id) ?? 0) + 1 / (k + rank));
+    });
+  }
+  return scores;
+}
+
+async function searchOneSubquery(
+  db: SupabaseClient,
+  queryText: string,
+  opts: { snapshotId: string; frameworkId?: string },
+): Promise<ScoredCandidate[]> {
+  const topK = RETRIEVAL.topKPerSubquery;
+  const queryEmbedding = await embedQuery(queryText);
+
+  const [dense, keywordRes] = await Promise.all([
+    db.rpc("match_chunks_dense", {
+      query_embedding: `[${queryEmbedding.join(",")}]`,
+      p_snapshot_id: opts.snapshotId,
+      p_framework_id: opts.frameworkId ?? null,
+      match_count: topK,
+    }),
+    db.rpc("match_chunks_keyword", {
+      query_text: queryText,
+      p_snapshot_id: opts.snapshotId,
+      p_framework_id: opts.frameworkId ?? null,
+      match_count: topK,
+    }),
+  ]);
+
+  if (dense.error) throw new Error(`match_chunks_dense failed: ${dense.error.message}`);
+  if (keywordRes.error) throw new Error(`match_chunks_keyword failed: ${keywordRes.error.message}`);
+
+  const denseRows = (dense.data ?? []) as ChunkCandidate[];
+  const keywordRows = (keywordRes.data ?? []) as ChunkCandidate[];
+
+  const byId = new Map<string, ChunkCandidate>();
+  for (const r of [...denseRows, ...keywordRows]) byId.set(r.id, r);
+
+  const fused = rrfFuse([denseRows.map((r) => r.id), keywordRows.map((r) => r.id)]);
+
+  return [...fused.entries()]
+    .map(([id, fusedScore]) => ({ ...byId.get(id)!, fusedScore }))
+    .sort((a, b) => b.fusedScore - a.fusedScore);
+}
+
+/** Run every sub-query, merging candidates by max fused score (dedup across subqueries). */
+export async function retrieveCandidatePool(
+  db: SupabaseClient,
+  understanding: QueryUnderstanding,
+  opts: { snapshotId: string; frameworkId?: string },
+): Promise<ScoredCandidate[]> {
+  const perSubquery = await Promise.all(
+    understanding.subqueries.map((sq) => searchOneSubquery(db, sq.query, opts)),
+  );
+
+  const merged = new Map<string, ScoredCandidate>();
+  for (const list of perSubquery) {
+    for (const cand of list) {
+      const existing = merged.get(cand.id);
+      if (!existing || cand.fusedScore > existing.fusedScore) merged.set(cand.id, cand);
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.fusedScore - a.fusedScore);
+}
+
+/** Rerank the candidate pool against the ORIGINAL input (system design §6.4). */
+export async function rerankCandidates(
+  originalInput: string,
+  candidates: ScoredCandidate[],
+): Promise<RerankedCandidate[]> {
+  if (candidates.length === 0) return [];
+  const results: RerankResult[] = await rerank(
+    originalInput,
+    candidates.map((c) => ({ id: c.id, text: c.text })),
+  );
+  const byId = new Map(candidates.map((c) => [c.id, c]));
+  return results
+    .map((r) => ({ ...byId.get(r.id)!, rerankScore: r.score }))
+    .filter((c): c is RerankedCandidate => !!c.id);
+}
+
+/** Expand reranked survivors to their parent articles, grouping children under
+ *  their parent (system design §6.4, DR-8) — the unit handed to generation. */
+export async function expandToParents(
+  db: SupabaseClient,
+  survivors: RerankedCandidate[],
+): Promise<ParentGroup[]> {
+  if (survivors.length === 0) return [];
+  const parentIds = [...new Set(survivors.map((s) => s.parent_id))];
+  const { data, error } = await db
+    .from("parents")
+    .select("id, framework_id, hierarchy_path, citation_label, text, source_url")
+    .in("id", parentIds);
+  if (error || !data) throw new Error(`parent expansion failed: ${error?.message}`);
+
+  const byParentId = new Map(data.map((p) => [p.id as string, p]));
+  const groups = new Map<string, ParentGroup>();
+  for (const s of survivors) {
+    const p = byParentId.get(s.parent_id);
+    if (!p) continue;
+    if (!groups.has(s.parent_id)) {
+      groups.set(s.parent_id, {
+        parent_id: s.parent_id,
+        framework_id: p.framework_id as string,
+        hierarchy_path: p.hierarchy_path as string[],
+        citation_label: p.citation_label as string,
+        text: p.text as string,
+        source_url: (p.source_url as string) ?? null,
+        supporting_chunks: [],
+      });
+    }
+    groups.get(s.parent_id)!.supporting_chunks.push({
+      id: s.id,
+      citation_label: s.citation_label,
+      rerankScore: s.rerankScore,
+    });
+  }
+  return [...groups.values()].sort(
+    (a, b) =>
+      Math.max(...b.supporting_chunks.map((c) => c.rerankScore)) -
+      Math.max(...a.supporting_chunks.map((c) => c.rerankScore)),
+  );
+}
