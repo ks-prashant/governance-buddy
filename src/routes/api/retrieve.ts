@@ -38,15 +38,23 @@ export const Route = createFileRoute("/api/retrieve")({
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-          const understanding = await understand(input);
-          timings.understand_ms = Date.now() - t0;
+          // understand() and getActiveSnapshotId() are independent — measured live,
+          // running them sequentially cost the full snapshot-lookup time (~0.5-1.1s)
+          // on top of the Haiku call for no reason. Run in parallel; the snapshot
+          // lookup is cheap enough that fetching it even when the input turns out
+          // insufficient (rare, discarded) is a good trade for the common-case win.
+          const tParallel = Date.now();
+          const [understanding, snapshotId] = await Promise.all([
+            understand(input),
+            getActiveSnapshotId(supabaseAdmin),
+          ]);
+          // Reported as understand_ms since it's the dominant (longer) of the two
+          // parallel calls in practice — the field name stays meaningful for anyone
+          // reading timings_ms without needing to know they now run concurrently.
+          timings.understand_ms = Date.now() - tParallel;
           if (!understanding.sufficient) {
             return json({ understanding, clarify: true, timings_ms: timings });
           }
-
-          const tSnap = Date.now();
-          const snapshotId = await getActiveSnapshotId(supabaseAdmin);
-          timings.get_snapshot_ms = Date.now() - tSnap;
 
           const tRetrieve = Date.now();
           const { reranked, parents, timings: retrievalTimings } = await runRetrieval(
