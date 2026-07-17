@@ -113,7 +113,7 @@ is missing AND its absence would materially change the obligations, set sufficie
 name the missing_attribute, and phrase exactly one clarifying_question — conversational,
 not a form. Never silently assume. direct_question inputs are always sufficient:true.
 
-Subqueries: produce 2-4 paraphrases/expansions of the input that maximize retrieval
+Subqueries: produce 2-6 paraphrases/expansions of the input that maximize retrieval
 recall against a legal/framework corpus (use precise legal terminology alongside the
 plain-language original). Tag each with the single most relevant dimension from:
 privacy, ai_regulation, ai_risk, cybersecurity, secure_development. The corpus

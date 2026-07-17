@@ -10,9 +10,9 @@
  * anon) is used; the retrieval endpoint uses the service-role admin client.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { embedQuery } from "./embed";
+import { embed } from "./embed";
 import { rerank, type RerankResult } from "./rerank";
-import { RETRIEVAL } from "./config";
+import { RETRIEVAL, EMBEDDING } from "./config";
 import type { QueryUnderstanding } from "./understand";
 
 export interface ChunkCandidate {
@@ -69,10 +69,10 @@ function rrfFuse(rankedLists: string[][], k = RETRIEVAL.rrfK): Map<string, numbe
 async function searchOneSubquery(
   db: SupabaseClient,
   queryText: string,
+  queryEmbedding: number[],
   opts: { snapshotId: string; frameworkId?: string },
 ): Promise<ScoredCandidate[]> {
   const topK = RETRIEVAL.topKPerSubquery;
-  const queryEmbedding = await embedQuery(queryText);
 
   const [dense, keywordRes] = await Promise.all([
     db.rpc("match_chunks_dense", {
@@ -114,7 +114,11 @@ async function searchOneSubquery(
  * training data handling" doesn't surface Art. 99 because its actual text (entry
  * into force) shares no semantic content with "AI training data". Exact-citation
  * recall matters increasingly once EU AI Act/NIST identifier-style anchors are
- * added, so the raw input is a permanent extra query, not a one-off patch. */
+ * added, so the raw input is a permanent extra query, not a one-off patch.
+ *
+ * All query texts are embedded in ONE batched Voyage call (not one call per query) —
+ * measured live, per-query embedding was a meaningful share of the 5-9s Phase C
+ * round-trip; embed() already accepts an array, so batching costs nothing. */
 export async function retrieveCandidatePool(
   db: SupabaseClient,
   understanding: QueryUnderstanding,
@@ -122,7 +126,10 @@ export async function retrieveCandidatePool(
   opts: { snapshotId: string; frameworkId?: string },
 ): Promise<ScoredCandidate[]> {
   const queries = [originalInput, ...understanding.subqueries.map((sq) => sq.query)];
-  const perSubquery = await Promise.all(queries.map((q) => searchOneSubquery(db, q, opts)));
+  const embeddings = await embed(queries, EMBEDDING.queryInputType);
+  const perSubquery = await Promise.all(
+    queries.map((q, i) => searchOneSubquery(db, q, embeddings[i], opts)),
+  );
 
   const merged = new Map<string, ScoredCandidate>();
   for (const list of perSubquery) {
