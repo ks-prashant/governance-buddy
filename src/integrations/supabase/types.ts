@@ -320,7 +320,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_chunks_dense: {
+        Args: {
+          match_count?: number
+          p_framework_id?: string
+          p_snapshot_id: string
+          query_embedding: string
+        }
+        Returns: {
+          citation_label: string
+          framework_id: string
+          hierarchy_path: string[]
+          id: string
+          parent_id: string
+          similarity: number
+          text: string
+        }[]
+      }
+      match_chunks_keyword: {
+        Args: {
+          match_count?: number
+          p_framework_id?: string
+          p_snapshot_id: string
+          query_text: string
+        }
+        Returns: {
+          citation_label: string
+          framework_id: string
+          hierarchy_path: string[]
+          id: string
+          parent_id: string
+          rank: number
+          text: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
