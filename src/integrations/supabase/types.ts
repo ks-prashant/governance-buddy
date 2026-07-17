@@ -320,6 +320,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      match_chunks_by_citation: {
+        Args: {
+          match_count?: number
+          p_framework_id?: string
+          p_snapshot_id: string
+          patterns: string[]
+        }
+        Returns: {
+          citation_label: string
+          framework_id: string
+          hierarchy_path: string[]
+          id: string
+          parent_id: string
+          text: string
+        }[]
+      }
       match_chunks_dense: {
         Args: {
           match_count?: number
