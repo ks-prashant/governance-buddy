@@ -15,24 +15,57 @@ import { readFileSync, writeFileSync } from "node:fs";
 const JUDGE_PROMPT_VERSION = "1.0.0";
 const TARGETS = { groundedness: 0.95, citationAccuracy: 0.90, correctRefusal: 0.90 };
 
+// Config (bun auto-loads .env / .env.local):
+//   PRODUCT_URL       deployed app base URL (default: the published Cloudflare Worker)
+//   ANTHROPIC_API_KEY needed by the judge (the judge runs here, in the harness)
+//   JUDGE_MODEL       pinned judge model id
+//   SUBSET_IDS        optional comma-separated golden ids to run (e.g. the GDPR-only
+//                     subset in Phase D; omit to run the whole set)
+const PRODUCT_URL = process.env.PRODUCT_URL || "https://pact-wise-guide.lovable.app";
+const JUDGE_MODEL = process.env.JUDGE_MODEL || "claude-sonnet-5";
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
 // ---------------------------------------------------------------------------
-// ADAPTERS — wire these to the product and the judge model.
+// ADAPTERS — wired to the deployed product endpoint and the judge model.
 // ---------------------------------------------------------------------------
 
-// Send one user input to the product. Return what the product produced.
-// `retrievedContext` should be the text the product actually retrieved (for groundedness
-// grading and retrieval-hit-rate); `citations` the citations it emitted.
-async function callProduct(input, inputType) {
-  // TODO: replace with a real call to the product endpoint.
-  // Expected shape:
-  //   return { text: "<assistant answer>", citations: [{framework, anchor}], retrievedContext: "<joined chunks>" };
-  throw new Error("callProduct() not wired yet — connect it to the product endpoint.");
+// Send one user input to the product's grounded-generation endpoint (non-streaming
+// mode) and return {text, citations, retrievedContext} for grading.
+async function callProduct(input, _inputType) {
+  const res = await fetch(`${PRODUCT_URL}/api/generate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ input, stream: false }),
+  });
+  if (!res.ok) throw new Error(`product ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return {
+    text: data.text || "",
+    citations: data.citations || [],
+    retrievedContext: data.retrievedContext || "",
+    behavior: data.behavior,
+  };
 }
 
-// Send a judge prompt to a strong model. Return the raw model text (expected: strict JSON).
+// Send a judge prompt to the pinned judge model. Returns raw text (expected strict JSON).
 async function callJudge(prompt) {
-  // TODO: replace with a real call to the judge model (pin the model id).
-  throw new Error("callJudge() not wired yet — connect it to the judge model.");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set (the judge needs it).");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: JUDGE_MODEL,
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`judge ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +123,13 @@ function retrievalHit(item, response) {
 
 async function main() {
   const file = process.argv[2] || "golden_set.jsonl";
-  const items = readFileSync(file, "utf8").split(/\r?\n/).filter((l) => l.trim()).map((l) => JSON.parse(l));
+  let items = readFileSync(file, "utf8").split(/\r?\n/).filter((l) => l.trim()).map((l) => JSON.parse(l));
+
+  const subset = process.env.SUBSET_IDS
+    ? new Set(process.env.SUBSET_IDS.split(",").map((s) => s.trim()))
+    : null;
+  if (subset) items = items.filter((it) => subset.has(it.id));
+  console.error(`Running ${items.length} item(s) against ${PRODUCT_URL} · judge=${JUDGE_MODEL}`);
 
   const results = [];
   for (const item of items) {

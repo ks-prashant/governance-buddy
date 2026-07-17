@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiRetrieveRouteImport } from './routes/api/retrieve'
+import { Route as ApiGenerateRouteImport } from './routes/api/generate'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const ApiRetrieveRoute = ApiRetrieveRouteImport.update({
   path: '/api/retrieve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateRoute = ApiGenerateRouteImport.update({
+  id: '/api/generate',
+  path: '/api/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/retrieve'
+  fullPaths: '/' | '/api/generate' | '/api/retrieve'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/retrieve'
-  id: '__root__' | '/' | '/api/retrieve'
+  to: '/' | '/api/generate' | '/api/retrieve'
+  id: '__root__' | '/' | '/api/generate' | '/api/retrieve'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiGenerateRoute: typeof ApiGenerateRoute
   ApiRetrieveRoute: typeof ApiRetrieveRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRetrieveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate': {
+      id: '/api/generate'
+      path: '/api/generate'
+      fullPath: '/api/generate'
+      preLoaderRoute: typeof ApiGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiGenerateRoute: ApiGenerateRoute,
   ApiRetrieveRoute: ApiRetrieveRoute,
 }
 export const routeTree = rootRouteImport

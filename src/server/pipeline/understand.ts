@@ -33,6 +33,12 @@ const UnderstandingSchema = z.object({
   sufficient: z.boolean(),
   missing_attribute: z.string().optional(),
   clarifying_question: z.string().optional(),
+  /** For a system_description: a one-sentence restatement of what the system is,
+   *  shown to the user as the "here's what I understood" trust checkpoint (PRD §6.1
+   *  Step 4). Produced here (cheap Haiku) rather than in the expensive Opus step so it
+   *  can stream to the user immediately, before generation runs. Omitted for a
+   *  direct_question (there's no system to restate). */
+  restated_understanding: z.string().optional(),
   subqueries: z.array(SubqueneSchema).min(1),
 });
 
@@ -74,6 +80,14 @@ const TOOL: LlmTool = {
         description:
           "Exactly ONE targeted, conversational question to ask the user to fill the " +
           "missing attribute. Omit if sufficient is true.",
+      },
+      restated_understanding: {
+        type: "string",
+        description:
+          "For a system_description only: one plain sentence restating what the system " +
+          "is, e.g. 'An ML-based credit-scoring feature using personal financial data, " +
+          "making automated decisions about individuals, deployed to EU users.' Omit for " +
+          "a direct_question.",
       },
       subqueries: {
         type: "array",

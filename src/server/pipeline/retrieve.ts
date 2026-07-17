@@ -153,8 +153,19 @@ export async function rerankCandidates(
   );
   const byId = new Map(candidates.map((c) => [c.id, c]));
   return results
-    .map((r) => ({ ...byId.get(r.id)!, rerankScore: r.score }))
-    .filter((c): c is RerankedCandidate => !!c.id);
+    .filter((r) => byId.has(r.id))
+    .map((r): RerankedCandidate => {
+      const cand = byId.get(r.id)!;
+      return {
+        id: cand.id,
+        parent_id: cand.parent_id,
+        framework_id: cand.framework_id,
+        hierarchy_path: cand.hierarchy_path,
+        citation_label: cand.citation_label,
+        text: cand.text,
+        rerankScore: r.score,
+      };
+    });
 }
 
 /** Expand reranked survivors to their parent articles, grouping children under
