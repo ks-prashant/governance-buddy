@@ -6,6 +6,8 @@
 > **How to use this.** §A sets up the workspace and the rules that keep the three-way sync from fighting itself. §B–§J are phases, in de-risking order. Each phase has **Owner · Steps · Files · Secrets · Acceptance gate · Commit point.** Do them in order — later phases assume earlier ones. Hand each phase to Claude Code as a scoped task; don't start a phase until the previous phase's acceptance gate is green.
 >
 > **Verify-at-build flags.** A few Lovable Cloud / Supabase mechanics (how migrations and edge functions deploy, exact UI labels) evolve; where the exact flow matters I give the robust path (**Supabase CLI**) plus the Lovable path, and mark it **[verify]**. The architecture doesn't depend on which you pick.
+>
+> **[Confirmed at build — corrects §A.0 below]** Lovable scaffolded **TanStack Start** (not plain React+Vite), and the BFF/orchestration layer is **TanStack Start server routes** (`src/routes/api/*.ts`, `server: { handlers: { POST } }`) plus plain modules in `src/server/pipeline/*.ts` — **not Supabase Edge Functions**. The deploy target is Cloudflare Workers. Wherever the phases below say `_shared/foo.ts` or "edge function", read it as `src/server/pipeline/foo.ts` and "TanStack server route" respectively — the pipeline logic and phase sequencing are unaffected, only the file locations and deploy mechanism differ from what was assumed when this plan was first written. See `architecture/SYSTEM_DESIGN.md` §4.1 for the full reasoning (Workers have no filesystem, which is *why* ingestion §B below runs offline rather than as an in-app endpoint).
 
 ---
 
@@ -15,13 +17,13 @@
 
 | System-design term | On this stack |
 |---|---|
-| Web app (UI) | React + Vite front end that Lovable scaffolds |
-| Server / BFF / orchestration | **Supabase Edge Functions** (Deno/TypeScript) — this is where the pipeline runs and where all keys live |
+| Web app (UI) | ~~React + Vite front end~~ **TanStack Start** (React 19 + Vite + Nitro) front end that Lovable scaffolds |
+| Server / BFF / orchestration | ~~Supabase Edge Functions~~ **TanStack Start server routes**, deployed to **Cloudflare Workers** — this is where the pipeline runs and where all keys live |
 | Postgres + pgvector | **Lovable Cloud's Supabase** Postgres, `vector` extension enabled |
 | Keyword search (BM25) | Postgres full-text search (`tsvector` + GIN) |
-| Secrets (Anthropic, Voyage, reranker) | **Lovable Cloud / Supabase secrets** — referenced only inside edge functions |
-| Ingestion pipeline | **Local Node scripts run by Claude Code** against the Supabase project (offline, per snapshot) |
-| Eval harness | `evals/run_eval.mjs`, `callProduct()` → the deployed orchestrator edge function |
+| Secrets (Anthropic, Voyage, reranker) | **Lovable Cloud / Supabase secrets** — referenced only inside TanStack server routes, never the client bundle |
+| Ingestion pipeline | **Local/sandboxed Node (bun) scripts** against the Supabase project (offline, per snapshot) — required because Cloudflare Workers have no filesystem to read the corpus from at request time |
+| Eval harness | `evals/run_eval.mjs`, `callProduct()` → the deployed TanStack server route |
 
 **Do NOT enable auth, saved sessions, or multi-user** — the MVP is single-session by spec (PRD §4.2, §13). Lovable will offer these; decline them.
 
@@ -62,30 +64,33 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 
 ### A.4 Repo structure (Claude Code establishes)
 
+**[Updated to reflect what was actually built — see the correction note at the top of this doc]**
+
 ```
 /corpus/                     five source PDFs (input to ingestion)
-/ingestion/                  local Node scripts: parse → structure → chunk → embed → load
-  parsers/{gdpr,ai-act,ai-rmf,csf,ssdf}.ts
-  chunk.ts  embed.ts  load.ts  validate.ts  run.ts
+/ingestion/                  local/sandboxed bun scripts: parse → structure → chunk → embed → load
+  parsers/{gdpr,ai-act,ai-rmf,csf,ssdf}.ts   ({gdpr} done; the rest are Phase E)
+  types.ts  lib/pdf.ts  load.ts  validate.ts  run.ts
 /corpus-build/               committed, reviewable parse output (structured JSON, NO embeddings)
 /supabase/
-  migrations/                schema as SQL (the §9 data model)
-  functions/
-    orchestrate/             the pipeline entry point (SSE)
-    _shared/                 config, llm(), embed(), rerank(), retrieval, generation, validation
-/src/                        React front end (Lovable-scaffolded, Claude-Code-extended)
-/evals/                      already authored — golden set, judge prompts, runner
+  migrations/                schema as SQL (the §9 data model) — 0001-0004 so far
+/src/
+  routes/api/                TanStack server routes (SSE where needed) — NOT Supabase Edge Functions
+  server/pipeline/           config, llm(), embed(), rerank(), understand, retrieve, (generate/validate/assemble — Phase D)
+  (React front end, Lovable-scaffolded, Claude-Code-extended)
+/evals/                      already authored — golden set, judge prompts, runner; check_retrieval.mjs added at build
 /design/  /architecture/     already authored
 ```
 
 ### A.5 Config baseline (from the system design, confirm at build)
 
-- Models: `MODEL_CLASSIFY=claude-haiku-4-5`, `MODEL_GENERATE=claude-opus-4-8`, `MODEL_VALIDATE=claude-haiku-4-5`, `MODEL_FOLLOWUP=claude-opus-4-8` (Sonnet 5 as a cost lever later).
-- Embeddings: a Voyage legal/general model — **confirm the current model name + dimension**, set the vector column width to match.
-- Generation: adaptive thinking on, `effort: high`; **prompt-cache** the stable system prefix.
+- Models: `MODEL_CLASSIFY=claude-haiku-4-5`, `MODEL_GENERATE=claude-opus-4-8`, `MODEL_VALIDATE=claude-haiku-4-5`, `MODEL_FOLLOWUP=claude-opus-4-8` (Sonnet 5 as a cost lever later). **[Confirmed at build]** all working model IDs.
+- Embeddings: **[Confirmed at build]** `voyage-3-large`, 1024 dimensions — vector column is `vector(1024)`.
+- Generation: adaptive thinking on, `effort: high`; **prompt-cache** the stable system prefix. **[Note for Phase D]** forced tool-use (the structured-output mechanism actually used, system design §4.5) is incompatible with `thinking` enabled — resolve this combination when building Step A, don't assume both apply simultaneously.
 - Never put user text or the snapshot date *inside* the cached prefix (prefix-match invalidation).
+- **[Added at build, binding]** every table gets RLS enabled with zero policies (system design §14.1) — this is now part of the config baseline, not an afterthought.
 
-**Commit point A:** repo scaffolded, assets moved, secrets set, pgvector enabled, CLI linked, seams stubbed. Green = a trivial edge function deploys and the front end loads.
+**Commit point A:** repo scaffolded, assets moved, secrets set, pgvector enabled, CLI linked, seams stubbed. Green = a trivial edge function deploys and the front end loads. **[Done]**
 
 ---
 
@@ -105,7 +110,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 **Files:** `supabase/migrations/0001_schema.sql`, `ingestion/parsers/gdpr.ts`, `chunk.ts`, `embed.ts`, `load.ts`, `validate.ts`, `run.ts`, `corpus-build/gdpr.json`.
 **Secrets touched:** Voyage key + Supabase service-role (local `.env`).
 **Acceptance gate:** query the DB for `Art. 22(1)` → returns the exact GDPR text with correct hierarchy path and a working source URL/anchor; validation script passes; embeddings present for all GDPR children.
-**Commit point B.**
+**Commit point B. [Done]** — 99/99 articles, 173/173 recitals, 562 children, 0 duplicate citation labels, 22/22 golden anchors resolve.
 
 ---
 
@@ -121,7 +126,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 4. **Expose a thin retrieval endpoint** (temporary) so the eval harness can measure retrieval in isolation.
 
 **Acceptance gate:** **retrieval-hit-rate** on the GDPR-only slice of `evals/golden_set.jsonl` (use each item's `expected_citations` as ground truth) meets a sensible bar (e.g. ≥0.9 on direct-lookup items). If low, A/B the embedder behind `embed()` and re-measure — don't proceed on weak retrieval.
-**Commit point C.**
+**Commit point C. [Done]** — 7/7 on the GDPR slice (direct-lookup items DL-01..04 the actual gate, all pass; also 3/3 adversarial items). Two real retrieval bugs found by this eval and fixed: `websearch_to_tsquery` silently AND-ing every word (killed the keyword arm for natural-language questions) and no path for citation-named lookups (system design §6.2). `evals/check_retrieval.mjs` is the reusable script — rerun it against Phase E's expanded corpus.
 
 ---
 
@@ -130,14 +135,16 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 **Goal:** hit the groundedness/citation targets on one framework. If this works on GDPR, the product works; if it doesn't, stop and fix here before adding breadth.
 **Owner:** Claude Code.
 
-**Steps**
-1. **Step A — obligation map** (`_shared/generate.ts`): Opus 4.8, **structured output** (strict JSON schema from system design §7.1), adaptive thinking + `effort: high`, given the reranked parents (each tagged with `chunk_id`). Returns `{restated_understanding, obligations[{statement, rationale, supporting_chunk_ids, applicability, impact, conflicts_with?}], gaps[], overall_confidence}`. **Grounding fence:** `supporting_chunk_ids` must come from the supplied set.
-2. **Step B — citation validation** (`_shared/validate-claims.ts`): for each obligation, verify statement+rationale are entailed by its cited parents — via the **Citations API** or a strict Haiku entailment check — **in parallel**. Unsupported claims are dropped/flagged (never shown cited). This is the DR-10 backstop that actually delivers ≥95% groundedness.
-3. **Assembly** (`_shared/assemble.ts`): build citation chips + source-viewer payloads **from chunk metadata** keyed to `supporting_chunk_ids` (never from model text); compute priority tiers via `w1·applicability + w2·impact + w3·retrieval_confidence`; attach "Decision support, not legal advice" + snapshot date.
-4. **Wire the orchestrator edge function** end-to-end for GDPR and deploy it.
-5. **Wire the eval harness:** point `evals/run_eval.mjs` `callProduct()` at the deployed orchestrator; run the **GDPR subset** through the real pipeline (use the Batch API for judge calls).
+> **[Scope change, decided at build]** SSE streaming (originally Phase F step 1) is now **part of this phase**, not a later retrofit. Reason: measuring the real, deployed Phase B/C endpoint showed query-understanding + retrieval alone already take 4.2–5.3s — essentially the entire 5s first-tier latency budget — before generation even starts (`architecture/SYSTEM_DESIGN.md` §8.1, §11, §18). Building Step A as a single blocking call and adding streaming afterward would mean rebuilding the response shape and the eval harness's `callProduct()` adapter a second time. Build it streaming from the first commit of this phase.
 
-**Acceptance gate (the big one):** on the GDPR subset — **groundedness ≥95%, citation accuracy ≥90%, correct-refusal ≥90%**, zero verdict leaks. If short, fix retrieval/prompt/validation here, not later.
+**Steps**
+1. **Step A — obligation map** (`src/server/pipeline/generate.ts`): Opus 4.8, **structured output**, adaptive thinking + `effort: high`, given the reranked parents (each tagged with `chunk_id`). Returns `{restated_understanding, obligations[{statement, rationale, supporting_chunk_ids, applicability, impact, conflicts_with?}], gaps[], overall_confidence}`. **Grounding fence:** `supporting_chunk_ids` must come from the supplied set. **[Resolve at build]** forced tool-use (the mechanism proven in `src/server/pipeline/understand.ts`) is incompatible with extended thinking — `tool_choice` must be `"auto"` when `thinking` is enabled (system design §4.5). Decide here whether Step A: (a) states the JSON schema in the system prompt with an unconstrained tool choice and parses the model's free-form JSON, (b) runs thinking and structure extraction as two calls, or (c) drops thinking for this call. Don't assume the Phase C pattern (forced tool_choice, no thinking) transfers unchanged.
+2. **Step B — citation validation** (`src/server/pipeline/validate.ts`): for each obligation, verify statement+rationale are entailed by its cited parents — via the **Citations API** or a strict Haiku entailment check — **in parallel**. Unsupported claims are dropped/flagged (never shown cited). This is the DR-10 backstop that actually delivers ≥95% groundedness.
+3. **Assembly** (`src/server/pipeline/assemble.ts`): build citation chips + source-viewer payloads **from chunk metadata** keyed to `supporting_chunk_ids` (never from model text); compute priority tiers via `w1·applicability + w2·impact + w3·retrieval_confidence`; attach "Decision support, not legal advice" + snapshot date.
+4. **Streaming endpoint** (`src/routes/api/generate.ts` or similar, TanStack server route, SSE): stream the restated understanding + progressive-loading stage names immediately once query-understanding resolves; stream each obligation card as it clears Step B validation, **Applies** tier first. Instrument stage timing the same way `src/routes/api/retrieve.ts` already does (`timings_ms`) — that instrumentation is what found the two real latency bugs in Phase C and should do the same job here.
+5. **Wire the eval harness:** point `evals/run_eval.mjs` `callProduct()` at the deployed streaming endpoint (consume the full stream, assemble the final response for grading); run the **GDPR subset** through the real pipeline (use the Batch API for judge calls).
+
+**Acceptance gate (the big one):** on the GDPR subset — **groundedness ≥95%, citation accuracy ≥90%, correct-refusal ≥90%**, zero verdict leaks, AND the first tier actually streams to a client within the 5s budget end-to-end (not just in theory). If short on the quality metrics, fix retrieval/prompt/validation here, not later. If short on latency, do not defer the fix to Phase F — it belongs here.
 **Commit point D.**
 
 ---
@@ -159,15 +166,16 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 
 ---
 
-## F. Phase 5 — Orchestration, streaming & the hero UI
+## F. Phase 5 — The hero UI (consumes Phase D's stream)
 
 **Goal:** the trustworthy, streamed experience from the design guidelines.
-**Owner:** Lovable (first scaffold of components) → Claude Code (behavior + streaming), guided by `design/DESIGN_AND_BRAND_GUIDELINES.md`.
+**Owner:** Lovable (first scaffold of components) → Claude Code (behavior), guided by `design/DESIGN_AND_BRAND_GUIDELINES.md`.
+
+> **[Scope change, decided at build]** SSE streaming itself moved to Phase D (§D) — it's a backend requirement forced by measured latency, not a UI concern, and building it early avoids a second pass on the response shape and eval adapter. This phase is now **purely the front end that consumes an already-streaming backend** — narrower than originally scoped.
 
 **Steps**
-1. **SSE streaming** from the orchestrator: stream the **Applies** tier first (≤5s), then lower tiers, gaps, conflicts; run Step-B validations in parallel so the full map lands ≤20s. Progressive loading names the stage ("Checking privacy obligations…").
-2. **Front end** (scaffold in Lovable, wire in Claude Code): the single hero input (two modes, three example prompts); the **restated-understanding** confirm with "Not quite? Refine"; the **obligation-map cards** (statement → why-this-applies → citation chips → Direct/Inferred/Possible label) in three tiers; the **source viewer** (exact paragraph highlighted, hierarchy breadcrumb, version, snapshot date, official-source link).
-3. **Apply the design system**: the "instrument and the source" split (sans UI / serif source text / mono citations), functional color, no red-for-priority, no percentages. Citations are the primary CTA.
+1. **Front end** (scaffold in Lovable, wire in Claude Code): the single hero input (two modes, three example prompts); the **restated-understanding** confirm with "Not quite? Refine"; the **obligation-map cards** (statement → why-this-applies → citation chips → Direct/Inferred/Possible label) in three tiers, rendered incrementally as Phase D's SSE stream delivers them; the **source viewer** (exact paragraph highlighted, hierarchy breadcrumb, version, snapshot date, official-source link).
+2. **Apply the design system**: the "instrument and the source" split (sans UI / serif source text / mono citations), functional color, no red-for-priority, no percentages. Citations are the primary CTA.
 
 **Acceptance gate:** the credit-scoring example (`evals/` CF-01 / CLR-04) runs end-to-end in the browser: streamed tiers, clickable citations opening the exact source, restatement editable, latency targets met.
 **Commit point F.**

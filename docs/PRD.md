@@ -343,3 +343,32 @@ Minimal analytics tied to product quality and to whether the product achieves it
 - **Phase 1 (this document):** the single flow — input, sufficiency check, obligation map, source viewer, uncertainty/refusal/conflict handling, corpus versioning, and the evaluation page.
 - **Phase 2:** side-by-side comparison view, framework navigator, suggested questions, saved sessions.
 - **Phase 3 (only with demonstrated demand):** additional corpora, multi-user, and extension of the same architecture to adjacent knowledge domains.
+
+---
+
+## 17. Build progress & stakeholder learnings (living section)
+
+Plain-language notes for anyone explaining this product's status to a stakeholder, investor, or new team member — updated as the build progresses. Technical detail lives in `architecture/SYSTEM_DESIGN.md`; this section is the "so what does that mean for the product" translation.
+
+### 17.1 Where things actually stand
+
+**Proven end-to-end on GDPR — one of the five frameworks, measured, not assumed.** The riskiest part of this product isn't the interface, it's whether the "grounded, cited, honest-about-gaps" promise actually holds up against real questions. That has now been demonstrated on GDPR specifically: the full pipeline (understand the question → retrieve the right clauses → in a future step, generate and validate an answer) runs against the real deployed system, on real GDPR text, and hits its retrieval-accuracy target. The plan was always to prove this on one framework before touching the other four (EU AI Act, NIST AI RMF, NIST CSF, NIST SSDF) — that sequencing is holding, and GDPR being solid is the evidence that the *same* approach will work for the rest, not a guarantee that it automatically will.
+
+**What's not yet measured:** the product's three headline quality promises — groundedness ≥95%, citation accuracy ≥90%, correct-refusal ≥90% — are the *next* build phase, not this one. What's proven so far (retrieval finding the right source material) is a strong leading indicator, but it is not the same claim as "the generated answer is trustworthy." Don't repeat "groundedness is proven" to a stakeholder yet — say "the foundation it depends on is proven."
+
+### 17.2 A concrete example worth using in a demo or a stakeholder conversation
+
+Ask the system what GDPR Article 99 says about handling AI training data. Article 99 is a real article — but it's actually about when the regulation takes legal effect, and says nothing about AI training data. A product that's trying to look confident would either dodge the question or make something up. This one correctly retrieves the actual text of Article 99 (because the user named it specifically) so it can honestly say "here's what it actually says, and it isn't what you're asking about." That's the entire pitch — "we refuse to make things up, and we can prove it" — made concrete in one example, and it's now something the built system can actually do, not just a design aspiration.
+
+A second, quieter example: when asked "how does GDPR justify credit-scoring obligations," the system's own retrieval surfaced **Recital 71** — an interpretive note that explains the *reasoning* behind Article 22's rule on automated decisions — ahead of the article itself. Recitals are usually treated as secondary text, but in practice they often explain *why* a rule exists in a way the operative article doesn't. That turned out to matter enough that including recitals (not just binding articles) in the corpus is now understood as a real quality lever, not a nice-to-have.
+
+### 17.3 Two things a stakeholder should know went wrong, and how they were caught
+
+Being upfront about this is part of the "honesty" thesis this product is selling — it would be inconsistent to hide our own mistakes while building a product whose entire pitch is "we don't hide what we don't know."
+
+1. **A security gap, found and fixed before launch.** Early in the build, the database was configured with the *intent* of being reachable only by the application's own backend — but the specific setting used didn't actually achieve that on the hosting platform being used, and for a window during development, the public (non-secret) key embedded in the app could have read and written the database directly, bypassing the app. This was caught by the hosting platform's own automated security check, verified directly, and fixed the same day — the database now properly denies that kind of access, confirmed by testing it directly rather than just trusting the fix. No user data was ever at risk (there were no real users yet), but it's a good example of why a security scan and hands-on verification, not just "we designed it to be secure," has to be part of the process before any real launch.
+2. **A performance assumption that didn't hold, caught by measuring instead of guessing.** The design assumed the "understand the question and find the right material" step of the pipeline would take well under a second. Measured against the real, deployed system, it consistently takes several seconds — mostly because a genuinely capable AI model call simply isn't instant. This doesn't threaten the product's core promise, but it does mean the chat needs to *feel* responsive while that work happens in the background (showing progress, streaming the answer in as it's ready) rather than assuming the total wait will be short enough that the user won't notice. That UX requirement has been moved earlier in the build plan so it's built in from the start rather than bolted on at the end.
+
+### 17.4 Operational note: keeping the corpus current
+
+Because the governance frameworks (GDPR, EU AI Act, etc.) are stored in a database rather than baked into the app itself, updating the corpus when a framework changes is a data operation, not a software release — the app doesn't need to be redeployed to reflect a refreshed or corrected source document. This keeps the "Corpus as of [date]" promise (§8.7) operationally cheap to honor.
