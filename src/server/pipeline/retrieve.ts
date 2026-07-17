@@ -192,3 +192,63 @@ export async function expandToParents(
       Math.max(...a.supporting_chunks.map((c) => c.rerankScore)),
   );
 }
+
+/** Extract explicit citation references from raw input and turn them into
+ *  citation_label ILIKE patterns. GDPR article form for now ("Article 22", "Art. 6(1)"
+ *  → "Art. 22%", "Art. 6(1)%"); Phase E extends this for the other frameworks'
+ *  identifier shapes (Annex III, PR.DS-01, MAP 1.1, PW.4.1). */
+export function extractCitationPatterns(input: string): string[] {
+  const patterns = new Set<string>();
+  const re = /\bart(?:icle)?\.?\s*(\d+)\s*(?:\((\d+)\))?/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(input))) {
+    const para = m[2] ? `(${m[2]})` : "";
+    patterns.add(`Art. ${m[1]}${para}%`);
+  }
+  return [...patterns];
+}
+
+async function matchByCitation(
+  db: SupabaseClient,
+  patterns: string[],
+  opts: { snapshotId: string; frameworkId?: string },
+): Promise<ChunkCandidate[]> {
+  const { data, error } = await db.rpc("match_chunks_by_citation", {
+    patterns,
+    p_snapshot_id: opts.snapshotId,
+    p_framework_id: opts.frameworkId ?? null,
+    match_count: RETRIEVAL.topKPerSubquery,
+  });
+  if (error) throw new Error(`match_chunks_by_citation failed: ${error.message}`);
+  return (data ?? []) as ChunkCandidate[];
+}
+
+/** Full retrieval: dense+keyword pool → rerank → pin exact citation matches → expand.
+ *
+ * Chunks matched by an explicit citation the user named are PINNED (given a max
+ * rerank score) so they survive even when their body text is unrelated to the rest
+ * of the query — if a user asks about "Article 99", they get Article 99, regardless
+ * of what Article 99 happens to be about. */
+export async function runRetrieval(
+  db: SupabaseClient,
+  understanding: QueryUnderstanding,
+  originalInput: string,
+  opts: { snapshotId: string; frameworkId?: string },
+): Promise<{ reranked: RerankedCandidate[]; parents: ParentGroup[] }> {
+  const pool = await retrieveCandidatePool(db, understanding, originalInput, opts);
+  const reranked = await rerankCandidates(originalInput, pool);
+
+  const patterns = extractCitationPatterns(originalInput);
+  let pinned: RerankedCandidate[] = [];
+  if (patterns.length > 0) {
+    const rows = await matchByCitation(db, patterns, opts);
+    const seen = new Set(reranked.map((r) => r.id));
+    pinned = rows
+      .filter((r) => !seen.has(r.id))
+      .map((r) => ({ ...r, rerankScore: 1 }));
+  }
+
+  const survivors = [...pinned, ...reranked];
+  const parents = await expandToParents(db, survivors);
+  return { reranked: survivors, parents };
+}

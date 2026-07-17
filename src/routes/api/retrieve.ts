@@ -10,12 +10,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { understand } from "@/server/pipeline/understand";
-import {
-  getActiveSnapshotId,
-  retrieveCandidatePool,
-  rerankCandidates,
-  expandToParents,
-} from "@/server/pipeline/retrieve";
+import { getActiveSnapshotId, runRetrieval } from "@/server/pipeline/retrieve";
 
 export const Route = createFileRoute("/api/retrieve")({
   server: {
@@ -42,17 +37,14 @@ export const Route = createFileRoute("/api/retrieve")({
           }
 
           const snapshotId = await getActiveSnapshotId(supabaseAdmin);
-          const pool = await retrieveCandidatePool(supabaseAdmin, understanding, input, {
+          const { reranked, parents } = await runRetrieval(supabaseAdmin, understanding, input, {
             snapshotId,
             frameworkId,
           });
-          const reranked = await rerankCandidates(input, pool);
-          const parents = await expandToParents(supabaseAdmin, reranked);
 
           return json({
             understanding,
             snapshot_id: snapshotId,
-            candidate_count: pool.length,
             reranked: reranked.map((r) => ({
               citation_label: r.citation_label,
               framework_id: r.framework_id,
