@@ -14,7 +14,307 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analytics_events: {
+        Row: {
+          event_type: string
+          id: string
+          payload: Json | null
+          session_id: string
+          ts: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          payload?: Json | null
+          session_id: string
+          ts?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          session_id?: string
+          ts?: string
+        }
+        Relationships: []
+      }
+      chunks: {
+        Row: {
+          char_from: number | null
+          char_to: number | null
+          citation_label: string
+          embedding: string | null
+          embedding_model_id: string | null
+          framework_id: string
+          hierarchy_path: string[]
+          id: string
+          parent_id: string
+          snapshot_id: string
+          text: string
+          tsv: unknown
+        }
+        Insert: {
+          char_from?: number | null
+          char_to?: number | null
+          citation_label: string
+          embedding?: string | null
+          embedding_model_id?: string | null
+          framework_id: string
+          hierarchy_path: string[]
+          id?: string
+          parent_id: string
+          snapshot_id: string
+          text: string
+          tsv?: unknown
+        }
+        Update: {
+          char_from?: number | null
+          char_to?: number | null
+          citation_label?: string
+          embedding?: string | null
+          embedding_model_id?: string | null
+          framework_id?: string
+          hierarchy_path?: string[]
+          id?: string
+          parent_id?: string
+          snapshot_id?: string
+          text?: string
+          tsv?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chunks_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "frameworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chunks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chunks_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "corpus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conflicts: {
+        Row: {
+          chunk_id_a: string
+          chunk_id_b: string
+          id: string
+          note: string
+          snapshot_id: string
+        }
+        Insert: {
+          chunk_id_a: string
+          chunk_id_b: string
+          id?: string
+          note: string
+          snapshot_id: string
+        }
+        Update: {
+          chunk_id_a?: string
+          chunk_id_b?: string
+          id?: string
+          note?: string
+          snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conflicts_chunk_id_a_fkey"
+            columns: ["chunk_id_a"]
+            isOneToOne: false
+            referencedRelation: "chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conflicts_chunk_id_b_fkey"
+            columns: ["chunk_id_b"]
+            isOneToOne: false
+            referencedRelation: "chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conflicts_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "corpus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corpus_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          snapshot_date: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          snapshot_date: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      eval_results: {
+        Row: {
+          judge_prompt_version: string | null
+          metric: string
+          run_date: string
+          run_id: string
+          snapshot_id: string | null
+          target: number | null
+          value: number
+        }
+        Insert: {
+          judge_prompt_version?: string | null
+          metric: string
+          run_date?: string
+          run_id?: string
+          snapshot_id?: string | null
+          target?: number | null
+          value: number
+        }
+        Update: {
+          judge_prompt_version?: string | null
+          metric?: string
+          run_date?: string
+          run_id?: string
+          snapshot_id?: string | null
+          target?: number | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eval_results_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "corpus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      framework_versions: {
+        Row: {
+          framework_id: string
+          snapshot_id: string
+          source_url: string | null
+          version_label: string
+        }
+        Insert: {
+          framework_id: string
+          snapshot_id: string
+          source_url?: string | null
+          version_label: string
+        }
+        Update: {
+          framework_id?: string
+          snapshot_id?: string
+          source_url?: string | null
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "framework_versions_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "frameworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "framework_versions_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "corpus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      frameworks: {
+        Row: {
+          dimension: string
+          id: string
+          name: string
+        }
+        Insert: {
+          dimension: string
+          id: string
+          name: string
+        }
+        Update: {
+          dimension?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      parents: {
+        Row: {
+          citation_label: string
+          framework_id: string
+          hierarchy_path: string[]
+          id: string
+          page_from: number | null
+          page_to: number | null
+          snapshot_id: string
+          source_url: string | null
+          text: string
+        }
+        Insert: {
+          citation_label: string
+          framework_id: string
+          hierarchy_path: string[]
+          id?: string
+          page_from?: number | null
+          page_to?: number | null
+          snapshot_id: string
+          source_url?: string | null
+          text: string
+        }
+        Update: {
+          citation_label?: string
+          framework_id?: string
+          hierarchy_path?: string[]
+          id?: string
+          page_from?: number | null
+          page_to?: number | null
+          snapshot_id?: string
+          source_url?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parents_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "frameworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parents_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "corpus_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
