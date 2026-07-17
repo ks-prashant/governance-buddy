@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/retrieve")({
           }
 
           const snapshotId = await getActiveSnapshotId(supabaseAdmin);
-          const pool = await retrieveCandidatePool(supabaseAdmin, understanding, {
+          const pool = await retrieveCandidatePool(supabaseAdmin, understanding, input, {
             snapshotId,
             frameworkId,
           });

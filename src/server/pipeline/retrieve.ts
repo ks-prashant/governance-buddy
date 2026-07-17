@@ -105,15 +105,24 @@ async function searchOneSubquery(
     .sort((a, b) => b.fusedScore - a.fusedScore);
 }
 
-/** Run every sub-query, merging candidates by max fused score (dedup across subqueries). */
+/** Run every sub-query, merging candidates by max fused score (dedup across subqueries).
+ *
+ * Always also searches the ORIGINAL raw input verbatim, not just the LLM's
+ * paraphrased sub-queries. Paraphrasing can drop explicit identifiers (article
+ * numbers, subcategory codes) that neither dense embedding nor keyword ranking
+ * recovers once diluted into prose — e.g. "GDPR Article 99 requirements for AI
+ * training data handling" doesn't surface Art. 99 because its actual text (entry
+ * into force) shares no semantic content with "AI training data". Exact-citation
+ * recall matters increasingly once EU AI Act/NIST identifier-style anchors are
+ * added, so the raw input is a permanent extra query, not a one-off patch. */
 export async function retrieveCandidatePool(
   db: SupabaseClient,
   understanding: QueryUnderstanding,
+  originalInput: string,
   opts: { snapshotId: string; frameworkId?: string },
 ): Promise<ScoredCandidate[]> {
-  const perSubquery = await Promise.all(
-    understanding.subqueries.map((sq) => searchOneSubquery(db, sq.query, opts)),
-  );
+  const queries = [originalInput, ...understanding.subqueries.map((sq) => sq.query)];
+  const perSubquery = await Promise.all(queries.map((q) => searchOneSubquery(db, q, opts)));
 
   const merged = new Map<string, ScoredCandidate>();
   for (const list of perSubquery) {
