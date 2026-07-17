@@ -241,10 +241,18 @@ export async function runRetrieval(
   understanding: QueryUnderstanding,
   originalInput: string,
   opts: { snapshotId: string; frameworkId?: string },
-): Promise<{ reranked: RerankedCandidate[]; parents: ParentGroup[] }> {
-  const pool = await retrieveCandidatePool(db, understanding, originalInput, opts);
-  const reranked = await rerankCandidates(originalInput, pool);
+): Promise<{ reranked: RerankedCandidate[]; parents: ParentGroup[]; timings: Record<string, number> }> {
+  const timings: Record<string, number> = {};
 
+  let t = Date.now();
+  const pool = await retrieveCandidatePool(db, understanding, originalInput, opts);
+  timings.pool_ms = Date.now() - t;
+
+  t = Date.now();
+  const reranked = await rerankCandidates(originalInput, pool);
+  timings.rerank_ms = Date.now() - t;
+
+  t = Date.now();
   const patterns = extractCitationPatterns(originalInput);
   let pinned: RerankedCandidate[] = [];
   if (patterns.length > 0) {
@@ -254,8 +262,13 @@ export async function runRetrieval(
       .filter((r) => !seen.has(r.id))
       .map((r) => ({ ...r, rerankScore: 1 }));
   }
+  timings.citation_pin_ms = Date.now() - t;
 
+  t = Date.now();
   const survivors = [...pinned, ...reranked];
   const parents = await expandToParents(db, survivors);
-  return { reranked: survivors, parents };
+  timings.expand_ms = Date.now() - t;
+
+  timings.candidate_pool_size = pool.length;
+  return { reranked: survivors, parents, timings };
 }

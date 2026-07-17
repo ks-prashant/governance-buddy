@@ -28,23 +28,41 @@ export const Route = createFileRoute("/api/retrieve")({
         }
         const frameworkId = typeof body.frameworkId === "string" ? body.frameworkId : undefined;
 
+        // Stage timing — a diagnostic endpoint should show where time actually goes,
+        // not force guessing from black-box round-trip latency (a batched-embedding
+        // fix showed no measurable improvement in practice; this is how we find out
+        // why instead of speculating further).
+        const t0 = Date.now();
+        const timings: Record<string, number> = {};
+
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
           const understanding = await understand(input);
+          timings.understand_ms = Date.now() - t0;
           if (!understanding.sufficient) {
-            return json({ understanding, clarify: true });
+            return json({ understanding, clarify: true, timings_ms: timings });
           }
 
+          const tSnap = Date.now();
           const snapshotId = await getActiveSnapshotId(supabaseAdmin);
-          const { reranked, parents } = await runRetrieval(supabaseAdmin, understanding, input, {
-            snapshotId,
-            frameworkId,
-          });
+          timings.get_snapshot_ms = Date.now() - tSnap;
+
+          const tRetrieve = Date.now();
+          const { reranked, parents, timings: retrievalTimings } = await runRetrieval(
+            supabaseAdmin,
+            understanding,
+            input,
+            { snapshotId, frameworkId },
+          );
+          timings.retrieval_ms = Date.now() - tRetrieve;
+          Object.assign(timings, retrievalTimings);
+          timings.total_ms = Date.now() - t0;
 
           return json({
             understanding,
             snapshot_id: snapshotId,
+            timings_ms: timings,
             reranked: reranked.map((r) => ({
               citation_label: r.citation_label,
               framework_id: r.framework_id,
