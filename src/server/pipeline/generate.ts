@@ -234,23 +234,43 @@ export async function generateObligationMap(args: {
     `USER INPUT: ${args.input}\n\n` +
     `SOURCES (the ONLY material you may use):\n\n${renderSources(args.sources)}`;
 
-  const result = await llm({
-    model: MODELS.generate,
-    system: [
-      // Stable, cacheable prefix — the rules + schema instructions never vary per request.
-      { type: "text", text: SYSTEM_PROMPT, ...(GENERATION.cacheSystemPrefix ? { cache_control: { type: "ephemeral" } } : {}) },
-    ],
-    messages: [{ role: "user", content: userMessage }],
-    maxTokens: GENERATION.maxTokens,
-    tools: [TOOL],
-    toolChoice: { type: "tool", name: TOOL_NAME },
-  });
+  // Retry once on a malformed tool call. Observed live (Sonnet 5, forced tool-use): the
+  // model occasionally emits an internally-inconsistent shape for a hard prompt — not just
+  // one field off (a lone string for `gaps`), but `obligations` itself as a string with
+  // `gaps`/`overall_confidence` missing entirely. This is evidence of a bad sample, not a
+  // systematic schema problem — after fixing three separate single-field cases in one
+  // session, retrying the whole call once is the more durable fix than chasing every
+  // possible malformed shape field-by-field. A second failure is a real error and should
+  // still surface as one (handled by collectPipeline's catch-all).
+  let parsed: ObligationMap | undefined;
+  let usage: unknown;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+    const result = await llm({
+      model: MODELS.generate,
+      system: [
+        // Stable, cacheable prefix — the rules + schema instructions never vary per request.
+        { type: "text", text: SYSTEM_PROMPT, ...(GENERATION.cacheSystemPrefix ? { cache_control: { type: "ephemeral" } } : {}) },
+      ],
+      messages: [{ role: "user", content: userMessage }],
+      maxTokens: GENERATION.maxTokens,
+      tools: [TOOL],
+      toolChoice: { type: "tool", name: TOOL_NAME },
+    });
 
-  const call = result.toolUses.find((t) => t.name === TOOL_NAME);
-  if (!call) {
-    throw new Error(`generate: model did not call ${TOOL_NAME} (stop_reason=${result.stopReason})`);
+    const call = result.toolUses.find((t) => t.name === TOOL_NAME);
+    if (!call) {
+      lastErr = new Error(`generate: model did not call ${TOOL_NAME} (stop_reason=${result.stopReason})`);
+      continue;
+    }
+    try {
+      parsed = ObligationMapSchema.parse(call.input);
+      usage = result.usage;
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  const parsed = ObligationMapSchema.parse(call.input);
+  if (!parsed) throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 
   // Grounding fence (mechanical): drop any cited id not in the supplied set, then drop
   // any obligation left with no valid citation. Invented ids can never reach the user.
@@ -272,6 +292,6 @@ export async function generateObligationMap(args: {
   return {
     map: { ...parsed, obligations: fenced },
     droppedInventedIds,
-    usage: result.usage,
+    usage,
   };
 }
