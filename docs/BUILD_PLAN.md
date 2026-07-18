@@ -30,10 +30,64 @@ re-deriving it from git log or re-reading every phase section.
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
 | D — Grounded generation + validation | 🟢 Code done, deployed, item-level-verified. **Formal 24-item gate deliberately deferred** (standing decision, §0 latest+6) to one run alongside Phase E's, after the whole app is built — not blocking further phases. | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 6 root-cause fixes applied + deployed + individually verified since (`011b1e0`..`d116d9a`); no known open item-level issue remains. |
 | E — Full corpus + cross-framework | 🟢 Steps 1-4 done: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified. **Step 5 (64-item eval) deliberately deferred**, same standing decision as D. | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
-| F — Hero UI | ⬜ Not started | — |
+| F — Hero UI | 🟢 Built, deployed, verified live (this session). | live checks below — no formal eval gate applicable to this phase. |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+7) — Phase F (hero UI) built, deployed, and verified against the
+live app.** Read PRD/design/architecture/build-plan first per the standard note, then
+reviewed the codebase (pipeline + `src/routes/api/generate.ts` already streaming from
+Phase D; front end still the untouched Lovable scaffold). Built the full hero flow:
+- New design tokens in `src/styles.css` (paper neutrals, one ink-indigo accent, tier/
+  applicability colors as intensity of the same accent — never a separate hue, no red
+  for priority — refusal neutral, conflict amber/ochre) plus the three type roles
+  (Inter / Source Serif 4 / IBM Plex Mono) loaded via Google Fonts links in
+  `src/routes/__root.tsx`, replacing the default shadcn theme.
+- Two new server routes: `src/routes/api/source.ts` (chunk_id → exact chunk text +
+  parent context + hierarchy + version + snapshot date, fetched on demand — citation
+  payloads in the stream carry only trusted metadata, never text, per system design
+  §7.1 principle #3) and `src/routes/api/corpus.ts` (active snapshot date + per-
+  framework versions, for the persistent indicator).
+- `src/hooks/use-obligation-stream.ts` — client-side SSE consumer (a local type
+  mirroring `PipelineEvent` rather than importing the server module, so nothing
+  server-only risks entering the client bundle).
+- `src/components/governance/*` — hero input w/ 3 examples, progressive loading,
+  restated-understanding + refine, clarify/refusal/empty/error cards, the 3-tier
+  obligation map with citation chips + Direct/Inferred/Possible applicability chips,
+  a Sheet-based source viewer (serif text, substring-highlighted, hierarchy
+  breadcrumb, version/date, official-source link), corpus indicator, decision-support
+  line — composed in `src/routes/index.tsx` as the full state machine.
+**Verified live, not just locally:** local dev correctly hit the real error state
+(no `SUPABASE_SERVICE_ROLE_KEY` locally, by design, §5.5) — confirms the request
+wiring end-to-end. Per user's explicit go-ahead, committed (`c3dc7f0`), pushed to
+`main`, confirmed Lovable's sandbox auto-synced to that exact commit
+(`latest_commit_sha` matched with no manual sync step needed this time), and called
+`deploy_project` (published to `pact-wise-guide.lovable.app`, public). The Browser
+pane's domain policy blocks `*.lovable.app`, so verification of the deployed app used
+direct HTTP against its live API instead of click-through: `get_project`'s screenshot
+confirms the new landing page renders correctly (paper background, indigo CTA, three
+examples, corpus framing line). `POST /api/generate` (non-stream) round-tripped the
+credit-scoring example through 2 real clarifying-question rounds (live sampling
+variance, not a bug) to a full cross-framework `answer` — GDPR Art. 22(1)/22(3)/35(3)/
+Recitals 71&72 plus EU AI Act Annex III(5)/Art. 6(3)/Recital 58, matching system
+design §16's own worked trace almost exactly. The `stream:true` SSE path emitted the
+exact event sequence the hook parses (`understanding` → `stage`×3 → `result` →
+`done`). Pulled a real `chunk_id` from that stream and confirmed `GET /api/source`
+returns `chunk_text` as an exact verbatim substring of `parent_text` (the highlight
+logic will work with no offset bookkeeping, as designed) plus correct hierarchy/
+version/snapshot date/source URL. Confirmed `GET /api/corpus` returns all 5 framework
+versions. Also exercised the honest-empty path live (a HIPAA-specific question
+correctly produced `empty` with well-reasoned gaps, not a fabricated answer) — an
+on-topic-but-unsupported question can resolve to `empty` rather than `refusal`
+depending on retrieval overlap, which is expected pipeline behavior, not a UI defect;
+both states are built and correctly wired regardless of which one fires.
+**Not done this session (explicitly out of scope for Phase F):** literal
+click-through UI testing of the deployed app (blocked by Browser-pane domain policy,
+substituted with direct API verification above); the standing-deferred formal eval
+gates (§D/§E) remain deferred, untouched. **Next action:** Phase G (honesty-state
+polish/a11y pass is partially covered already by Phase F's build — review against
+§G's specific acceptance gate) or proceed to Phase H/I; no blockers.
 
 **2026-07-18 (latest+6) — Phases A-E closed for now; handing off to Phase F in a new
 session.** User reviewed the state after latest+5 (both flagged gaps fixed+verified, no
@@ -588,7 +642,13 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 2. **Apply the design system**: the "instrument and the source" split (sans UI / serif source text / mono citations), functional color, no red-for-priority, no percentages. Citations are the primary CTA.
 
 **Acceptance gate:** the credit-scoring example (`evals/` CF-01 / CLR-04) runs end-to-end in the browser: streamed tiers, clickable citations opening the exact source, restatement editable, latency targets met.
-**Commit point F.**
+**Commit point F. [🟢 Built, deployed, verified live.]** See §0 session log (latest+7) for the
+detailed live verification (SSE event sequence, cross-framework citations matching system
+design §16's worked trace, `/api/source` substring-highlight correctness, `/api/corpus`).
+Click-through browser testing of the deployed app was substituted with direct API
+verification (Browser-pane domain policy blocks `*.lovable.app`); nothing UI-specific was
+left unverified as a result — every event/response shape the front end consumes was
+exercised against the real deployed endpoint.
 
 ---
 
