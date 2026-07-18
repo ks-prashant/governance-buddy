@@ -45,7 +45,9 @@ export type PipelineEvent =
   | { type: "clarify"; question: string; missing_attribute?: string }
   | { type: "refusal"; message: string }
   | { type: "empty"; message: string; gaps: string[] }
-  | { type: "result"; result: AssembledResult }
+  // usage is server-diagnostic only (prompt-cache verification, build plan §I step 2) —
+  // token counts, never user text. Surfaced in CollectedResult for ops; the UI ignores it.
+  | { type: "result"; result: AssembledResult; usage?: unknown }
   | { type: "error"; message: string }
   | { type: "done" };
 
@@ -115,7 +117,7 @@ function buildSources(reranked: RerankedCandidate[], parents: ParentGroup[]) {
 export async function* runPipeline(
   db: SupabaseClient,
   input: string,
-  opts: { frameworkId?: string } = {},
+  opts: { frameworkId?: string; model?: string } = {},
 ): AsyncGenerator<PipelineEvent> {
   // 1. Understand (cheap, fast) — and the snapshot lookup, in parallel.
   const [understanding, snapshotId] = await Promise.all([
@@ -166,11 +168,12 @@ export async function* runPipeline(
 
   // 3. Generate (Step A) — the obligation map, grounded to the supplied sources.
   yield { type: "stage", label: "Mapping obligations…" };
-  const { map } = await generateObligationMap({
+  const { map, usage } = await generateObligationMap({
     input,
     inputType: understanding.input_type,
     restatedUnderstanding: understanding.restated_understanding,
     sources,
+    model: opts.model,
   });
 
   // 4. Validate (Step B) — drop any obligation whose statement isn't entailed by its source.
@@ -195,7 +198,7 @@ export async function* runPipeline(
     retrievedContext,
   });
 
-  yield { type: "result", result };
+  yield { type: "result", result, usage };
   yield { type: "done" };
 }
 
@@ -207,12 +210,14 @@ export interface CollectedResult {
   citations: Array<{ framework: string; anchor: string }>;
   retrievedContext: string;
   restated_understanding?: string;
+  /** Server-diagnostic only (build plan §I step 2: verify cache_read_input_tokens > 0). */
+  usage?: unknown;
 }
 
 export async function collectPipeline(
   db: SupabaseClient,
   input: string,
-  opts: { frameworkId?: string } = {},
+  opts: { frameworkId?: string; model?: string } = {},
 ): Promise<CollectedResult> {
   let restated: string | undefined;
   try {
@@ -239,6 +244,7 @@ export async function collectPipeline(
             citations: ev.result.citations,
             retrievedContext: ev.result.retrievedContext,
             restated_understanding: restated,
+            usage: ev.usage,
           };
       }
     }

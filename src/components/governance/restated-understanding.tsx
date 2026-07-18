@@ -21,7 +21,7 @@ export function RestatedUnderstanding({
       <button
         type="button"
         onClick={onRefine}
-        className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
+        className="inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
       >
         <Pencil className="h-3 w-3" aria-hidden />
         Not quite? Refine

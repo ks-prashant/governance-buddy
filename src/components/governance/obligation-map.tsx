@@ -8,6 +8,7 @@
 import type { AssembledResult, Citation, Tier } from "@/hooks/use-obligation-stream";
 import { ObligationCard } from "./obligation-card";
 import { ConflictSection } from "./conflict-section";
+import { FollowUpBox } from "./follow-up-box";
 
 const TIER_ORDER: Tier[] = ["applies", "likely", "possibly"];
 
@@ -19,10 +20,17 @@ const TIER_META: Record<Tier, { heading: string; barClass: string }> = {
 
 export function ObligationMap({
   result,
+  originalInput,
   onOpenSource,
+  allowFollowUp = true,
 }: {
   result: AssembledResult;
+  originalInput: string;
   onOpenSource: (citation: Citation) => void;
+  /** False inside a follow-up's own answer — caps nesting at one level (design
+   *  guidelines §9 restraint principle: a follow-up's follow-up stays a fresh
+   *  top-level question, not an ever-deepening thread). */
+  allowFollowUp?: boolean;
 }) {
   const nonEmptyTiers = TIER_ORDER.filter((t) => result.tiers[t].length > 0);
 
@@ -45,7 +53,13 @@ export function ObligationMap({
           </div>
           <div className="space-y-3">
             {result.tiers[tier].map((o, i) => (
-              <ObligationCard key={`${tier}-${i}`} obligation={o} onOpenSource={onOpenSource} />
+              <ObligationCard
+                key={`${tier}-${i}`}
+                obligation={o}
+                originalInput={originalInput}
+                onOpenSource={onOpenSource}
+                allowFollowUp={allowFollowUp}
+              />
             ))}
           </div>
         </section>
@@ -65,6 +79,19 @@ export function ObligationMap({
               ))}
             </ul>
           </div>
+        </section>
+      )}
+
+      {allowFollowUp && (
+        <section aria-label="Ask a follow-up">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+            Ask a follow-up
+          </h2>
+          <FollowUpBox
+            onOpenSource={onOpenSource}
+            placeholder="Ask a follow-up about this result…"
+            contextText={`The user described their system as: "${originalInput}".`}
+          />
         </section>
       )}
     </div>

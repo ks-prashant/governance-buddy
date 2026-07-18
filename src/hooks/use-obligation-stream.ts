@@ -113,7 +113,7 @@ export function useObligationStream() {
     setState(INITIAL_STATE);
   }, []);
 
-  const submit = useCallback(async (input: string, opts: { frameworkId?: string } = {}) => {
+  const submit = useCallback(async (input: string, opts: { frameworkId?: string; mode?: "map" | "followup" } = {}) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -125,7 +125,7 @@ export function useObligationStream() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input, frameworkId: opts.frameworkId, stream: true }),
+        body: JSON.stringify({ input, frameworkId: opts.frameworkId, mode: opts.mode, stream: true }),
         signal: controller.signal,
       });
 

@@ -105,7 +105,7 @@ export function HeroInput({
                   setValue(ex.text);
                   setDismissedExamples(true);
                 }}
-                className="cursor-pointer rounded-md border border-border bg-card px-4 py-3 text-left text-sm text-foreground/90 transition-colors hover:border-primary/40 hover:bg-accent/40"
+                className="cursor-pointer rounded-md border border-border bg-card px-4 py-3 text-left text-sm text-foreground/90 transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 <span className="mr-2 text-xs font-medium text-muted-foreground">{ex.mode}:</span>
                 {ex.text}

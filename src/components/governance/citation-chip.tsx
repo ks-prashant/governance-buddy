@@ -20,8 +20,10 @@ export function CitationChip({
     <button
       type="button"
       onClick={() => onOpen(citation)}
+      aria-label={`Open source: ${citation.framework} ${citation.citation_label}`}
       className={cn(
-        "group inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 font-citation text-xs transition-colors",
+        "group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 font-citation text-xs transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         variant === "default" &&
           "border-primary/25 bg-primary/5 text-primary hover:border-primary/50 hover:bg-primary/10",
         variant === "tension" &&

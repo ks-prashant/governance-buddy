@@ -3,15 +3,8 @@ import { useState } from "react";
 import { useObligationStream, type Citation } from "@/hooks/use-obligation-stream";
 import { track } from "@/lib/analytics";
 import { CorpusIndicator } from "@/components/governance/corpus-indicator";
-import { DecisionSupportLine } from "@/components/governance/decision-support-line";
 import { HeroInput } from "@/components/governance/hero-input";
-import { ProgressiveLoading } from "@/components/governance/progressive-loading";
-import { RestatedUnderstanding } from "@/components/governance/restated-understanding";
-import { ClarifyCard } from "@/components/governance/clarify-card";
-import { RefusalCard } from "@/components/governance/refusal-card";
-import { EmptyState } from "@/components/governance/empty-state";
-import { ErrorState } from "@/components/governance/error-state";
-import { ObligationMap } from "@/components/governance/obligation-map";
+import { AnswerPanel } from "@/components/governance/answer-panel";
 import { SourceViewer } from "@/components/governance/source-viewer";
 import { Button } from "@/components/ui/button";
 
@@ -60,12 +53,15 @@ function Index() {
           Grounded Governance
         </span>
         <div className="flex items-center gap-4">
-          <Link to="/evaluation" className="text-xs font-medium text-muted-foreground hover:text-primary">
+          <Link
+            to="/evaluation"
+            className="rounded-sm text-xs font-medium text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          >
             Evaluation
           </Link>
           <a
             href="mailto:prashant.dpsrkp@gmail.com"
-            className="text-xs font-medium text-muted-foreground hover:text-primary"
+            className="rounded-sm text-xs font-medium text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
           >
             Contact
           </a>
@@ -99,44 +95,15 @@ function Index() {
               </Button>
             </div>
 
-            {state.restatedUnderstanding && state.status !== "clarify" && (
-              <RestatedUnderstanding text={state.restatedUnderstanding} onRefine={handleRefine} />
-            )}
-
-            {state.status === "loading" && (
-              <ProgressiveLoading label={state.stageLabel ?? "Working…"} />
-            )}
-
-            {state.status === "clarify" && state.clarifyQuestion && (
-              <ClarifyCard
-                question={state.clarifyQuestion}
-                missingAttribute={state.missingAttribute}
-                onAnswer={handleClarifyAnswer}
-              />
-            )}
-
-            {state.status === "refusal" && state.refusalMessage && (
-              <RefusalCard message={state.refusalMessage} onTryAgain={startOver} />
-            )}
-
-            {state.status === "empty" && state.emptyMessage && (
-              <EmptyState
-                message={state.emptyMessage}
-                gaps={state.emptyGaps}
-                onTryAgain={startOver}
-              />
-            )}
-
-            {state.status === "error" && (
-              <ErrorState message={state.errorMessage ?? ""} onRetry={() => submit(lastInput)} />
-            )}
-
-            {state.status === "result" && state.result && (
-              <div className="space-y-6">
-                <DecisionSupportLine corpusAsOf={state.result.corpus_as_of} />
-                <ObligationMap result={state.result} onOpenSource={handleOpenSource} />
-              </div>
-            )}
+            <AnswerPanel
+              state={state}
+              originalInput={lastInput}
+              onOpenSource={handleOpenSource}
+              onClarifyAnswer={handleClarifyAnswer}
+              onRefine={handleRefine}
+              onRetry={() => submit(lastInput)}
+              onTryAgain={startOver}
+            />
           </div>
         )}
       </div>

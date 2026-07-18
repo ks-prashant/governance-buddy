@@ -38,9 +38,13 @@ export function CorpusIndicator() {
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="cursor-default font-citation text-xs text-muted-foreground">
+          <button
+            type="button"
+            className="cursor-default rounded-sm font-citation text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            aria-label={`Corpus as of ${info.snapshot_date}. Activate for framework versions.`}
+          >
             Corpus as of {info.snapshot_date}
-          </span>
+          </button>
         </TooltipTrigger>
         <TooltipContent align="end" className="max-w-xs">
           <ul className="space-y-1 font-citation text-xs">

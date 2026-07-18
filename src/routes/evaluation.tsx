@@ -149,10 +149,16 @@ function EvaluationPage() {
   return (
     <main className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-4 pt-8 sm:px-6">
-        <Link to="/" className="text-sm font-semibold tracking-tight text-foreground hover:text-primary">
+        <Link
+          to="/"
+          className="rounded-sm text-sm font-semibold tracking-tight text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+        >
           Grounded Governance
         </Link>
-        <Link to="/" className="text-xs font-medium text-primary hover:underline">
+        <Link
+          to="/"
+          className="rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+        >
           ← Back
         </Link>
       </header>

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/generate")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let body: { input?: unknown; frameworkId?: unknown; stream?: unknown };
+        let body: { input?: unknown; frameworkId?: unknown; stream?: unknown; mode?: unknown };
         try {
           body = await request.json();
         } catch {
@@ -28,6 +28,9 @@ export const Route = createFileRoute("/api/generate")({
         }
         const frameworkId = typeof body.frameworkId === "string" ? body.frameworkId : undefined;
         const wantStream = body.stream !== false;
+        // "followup" routes to MODELS.followup (PRD FR-6.1-6.3 — same grounding rules as
+        // the map, build plan §I step 1); anything else (including omitted) is the map.
+        const mode = body.mode === "followup" ? "followup" : "map";
 
         // Guard the dynamic imports + non-streaming path the same way retrieve.ts does —
         // a module-load hiccup here would otherwise fall through to the framework's
@@ -37,12 +40,16 @@ export const Route = createFileRoute("/api/generate")({
         >["supabaseAdmin"];
         let runPipeline: typeof import("@/server/pipeline/pipeline").runPipeline;
         let collectPipeline: typeof import("@/server/pipeline/pipeline").collectPipeline;
+        let model: string | undefined;
         try {
           ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
           ({ runPipeline, collectPipeline } = await import("@/server/pipeline/pipeline"));
+          if (mode === "followup") {
+            ({ MODELS: { followup: model } } = await import("@/server/pipeline/config"));
+          }
 
           if (!wantStream) {
-            const result = await collectPipeline(supabaseAdmin, input, { frameworkId });
+            const result = await collectPipeline(supabaseAdmin, input, { frameworkId, model });
             return json(result);
           }
         } catch (err) {
@@ -57,7 +64,7 @@ export const Route = createFileRoute("/api/generate")({
             const send = (obj: unknown) =>
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
             try {
-              for await (const ev of runPipeline(supabaseAdmin, input, { frameworkId })) {
+              for await (const ev of runPipeline(supabaseAdmin, input, { frameworkId, model })) {
                 send(ev);
               }
             } catch (err) {
