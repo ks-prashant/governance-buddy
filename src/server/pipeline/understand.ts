@@ -78,7 +78,11 @@ const TOOL: LlmTool = {
           "data it uses, (3) whether it makes or informs decisions about people, and (4) " +
           "where it is deployed/whose data. A bare 'is our app compliant?' with zero system " +
           "detail is missing all four and must be sufficient:false. Always true for a " +
-          "direct_question.",
+          "direct_question. EXCEPTION: if the input names a specific external law/" +
+          "regulation/standard as its subject (HIPAA, CCPA, a named state/city law, LGPD, " +
+          "PIPL, UK GDPR, etc.), sufficient must be true regardless of missing system " +
+          "attributes — more system detail cannot make an unlisted regime answerable, only " +
+          "corpus coverage can, which is checked downstream.",
       },
       missing_attribute: {
         type: "string",
@@ -155,6 +159,15 @@ and phrase EXACTLY ONE clarifying_question. A bare "is our app compliant?" with 
 system detail is missing ALL four attributes — still ask only ONE question, naming the
 most critical gap (what the system does), not a list of everything missing. Never
 silently assume. "direct_question" inputs are always sufficient:true.
+
+EXCEPTION — named external regime overrides sufficiency: if the input names a specific
+external law/regulation/standard as its subject (HIPAA, CCPA, a named state/city law,
+LGPD, PIPL, UK GDPR, ISO certifications, etc.), set sufficient:true and skip
+clarifying_question EVEN IF you classified input_type as "system_description" and even
+if some system attributes are still unstated. More system detail cannot make an
+unlisted regime answerable — only corpus coverage can, and that is determined by
+retrieval downstream, not by this classification step. Only ask a clarifying question
+about system attributes when NO specific external framework is named at all.
 
 The clarifying_question MUST be a single question — one sentence, one "?", asking about
 ONE thing (the single most critical missing attribute). Do NOT bundle multiple asks
