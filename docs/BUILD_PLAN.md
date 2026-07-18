@@ -32,9 +32,63 @@ re-deriving it from git log or re-reading every phase section.
 | E — Full corpus + cross-framework | 🟢 Steps 1-4 done: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified. **Step 5 (64-item eval) deliberately deferred**, same standing decision as D. | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
 | F — Hero UI | 🟢 Built, deployed, verified live (this session). | live checks below — no formal eval gate applicable to this phase. |
 | G — Honesty states | 🟢 Built, deployed, verified live. | CLR-01/02, OOC-01/04/06, CONF-01 exercised live against the deployed endpoint; each produces its correct UI-mapped behavior. |
-| H–J | ⬜ Not started | — |
+| H — Eval page + CI gate + instrumentation | 🟢 Built, deployed, verified live. **Blocked on one manual step:** `EVAL_WRITE_SECRET` must be added to GitHub Actions + Lovable Cloud secrets before a published run will show on the eval page (see §0 latest+9). | endpoints verified live; eval page correctly shows the honest "no published run yet" state (true today). |
+| I–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+9) — Phase H (eval page, instrumentation, CI gate) built, deployed,
+verified live.** User confirmed two decisions before starting: the contact affordance
+(PRD §14) links to `mailto:prashant.dpsrkp@gmail.com`, and the new GitHub Actions eval
+workflow should be `workflow_dispatch`-only for now (not auto-run on push), since the
+full golden set costs real Anthropic spend and there's a standing decision (§0/§D) to
+defer the first comprehensive run.
+- **`src/routes/api/eval-results.ts`** — public `GET` (latest row per metric, for the
+  eval page) + `POST` gated by a bearer secret (`EVAL_WRITE_SECRET`), checked against
+  `process.env` server-side. Without the gate, the one page whose entire pitch is
+  "honest, unfakeable numbers" would itself be spoofable by anyone with a POST client —
+  the gate is a data-integrity check, not a user-auth system (PRD §4.2 still holds: no
+  accounts).
+- **`src/routes/evaluation.tsx`** — the in-product evaluation page (PRD §8.8, design
+  §5.15): gating metrics (groundedness/citation accuracy/correct-refusal) with PASS/
+  BELOW-TARGET badges, reported-only metrics, watch counts (verdict leaks, false
+  answers on OOC), each with target + latest value + run date + a plain-language
+  explanation; 6 representative example questions pulled from the real golden set
+  (DL-01, CF-01, CONF-01, OOC-01, ADV-03, CLR-01); and an explicit "No published run
+  yet" honest state when `eval_results` is empty — which is the true state right now,
+  so the page says so rather than showing a placeholder.
+- **`evals/run_eval.mjs`** — after writing `results.json`/`report.md` as before, now
+  POSTs the aggregate metrics to `/api/eval-results` if `EVAL_WRITE_SECRET` is set in
+  the environment; silently skips (with a stderr note) if not, so existing local runs
+  are unaffected.
+- **`src/routes/api/analytics.ts` + `src/lib/analytics.ts`** — anonymous, session-
+  scoped counters (PRD §14): `map_completed` (with `time_to_result_ms` measured
+  client-side from submit to the `result` SSE event, plus tier counts), `clarifying_question`,
+  `citation_click` (framework + citation_label only), `refusal`, `empty`, `error`. Event-
+  type allow-list and a payload-size cap enforced server-side; the user's system
+  description is never sent in any payload — wired into `use-obligation-stream.ts` and
+  `index.tsx`'s citation-open handler, not scattered ad hoc.
+- **Contact + Evaluation links** added to the header (`index.tsx`).
+- **`.github/workflows/eval.yml`** — the harness as a GitHub Actions job, manual-
+  trigger only, with an optional `subset_ids` input for a cheap partial run; needs
+  `ANTHROPIC_API_KEY` and `EVAL_WRITE_SECRET` as repo secrets to actually publish.
+**Verified live** (not just locally): committed (`2906cca`), pushed, confirmed
+`latest_commit_sha` matched, deployed. Direct API checks against the live app: `GET
+/api/eval-results` → `{"metrics":[]}` (correct — nothing published yet); `POST` without
+the secret → `503` (correctly refuses to accept unauthenticated writes, doesn't silently
+no-op); `POST /api/analytics` with a valid event → `200 {"ok":true}`, with an invalid
+event_type → `400` (allow-list enforced); `/evaluation` renders. (One local red herring
+mid-session: a multi-command shell batch appeared to show `/api/eval-results` returning
+HTML instead of JSON — re-ran it in isolation and it was a shell output-interleaving
+artifact, not a real bug; the endpoint was correct all along.)
+**Outstanding, not a code gap:** `EVAL_WRITE_SECRET` was generated this session and
+given directly to the user (never committed, never logged) — it still needs to be added
+to GitHub Actions repo secrets AND Lovable Cloud secrets (same value, both places) before
+a harness run can actually publish to the eval page. Until then the page's "no published
+run yet" state is simply accurate. **Next action:** Phase I (follow-ups + hardening) —
+or, once the user adds the secret, a first real (likely partial/cheap, via `subset_ids`)
+eval publish to confirm the write path end-to-end before trusting it for the eventual
+full comprehensive run.
 
 **2026-07-18 (latest+8) — Phase G (honesty states) reviewed and closed against Phase
 F's build.** Most of §G's steps (clarify, refusal, empty, low-confidence banner,
@@ -725,7 +779,18 @@ OOC-01/04/06, CONF-01 exercised against the deployed endpoint).
 4. **Contact affordance** (single, unobtrusive).
 
 **Acceptance gate:** eval page shows live numbers tied to the active snapshot; a deliberately regressed change fails CI.
-**Commit point H.**
+**Commit point H. [🟢 Built, deployed, verified live — one manual step outstanding.]**
+`src/routes/api/eval-results.ts` (public GET, secret-gated POST), `src/routes/evaluation.tsx`
+(the eval page), `src/routes/api/analytics.ts` + `src/lib/analytics.ts` (instrumentation),
+`.github/workflows/eval.yml` (CI job, **manual `workflow_dispatch` only** — by explicit user
+decision, since auto-running on every push would spend real Anthropic budget against the
+standing full-eval-deferral decision in §0/§D). All three new endpoints verified live
+against the deployed app; the eval page correctly renders the honest "no published run
+yet" state, which is literally true right now. **Outstanding:** the harness can't actually
+publish a run until `EVAL_WRITE_SECRET` (generated this session, given to the user directly
+— never committed or logged) is added to both GitHub Actions repo secrets and Lovable Cloud
+secrets. Until then `evals/run_eval.mjs` still writes `results.json`/`report.md` locally
+same as before; it just can't push to the page. See §0 session log (latest+9).
 
 ---
 
