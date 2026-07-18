@@ -264,6 +264,27 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_requests: {
+        Row: {
+          id: string
+          ip: string
+          session_id: string
+          ts: string
+        }
+        Insert: {
+          id?: string
+          ip: string
+          session_id: string
+          ts?: string
+        }
+        Update: {
+          id?: string
+          ip?: string
+          session_id?: string
+          ts?: string
+        }
+        Relationships: []
+      }
       parents: {
         Row: {
           citation_label: string
@@ -314,27 +335,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      generation_requests: {
-        Row: {
-          id: string
-          ip: string
-          session_id: string
-          ts: string
-        }
-        Insert: {
-          id?: string
-          ip: string
-          session_id: string
-          ts?: string
-        }
-        Update: {
-          id?: string
-          ip?: string
-          session_id?: string
-          ts?: string
-        }
-        Relationships: []
       }
     }
     Views: {

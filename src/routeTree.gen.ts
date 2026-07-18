@@ -9,43 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as EvaluationRouteImport } from './routes/evaluation'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiSourceRouteImport } from './routes/api/source'
-import { Route as ApiRetrieveRouteImport } from './routes/api/retrieve'
-import { Route as ApiGenerateRouteImport } from './routes/api/generate'
-import { Route as ApiEvalResultsRouteImport } from './routes/api/eval-results'
-import { Route as ApiCorpusRouteImport } from './routes/api/corpus'
+import { Route as EvaluationRouteImport } from './routes/evaluation'
 import { Route as ApiAnalyticsRouteImport } from './routes/api/analytics'
+import { Route as ApiCorpusRouteImport } from './routes/api/corpus'
+import { Route as ApiEvalResultsRouteImport } from './routes/api/eval-results'
+import { Route as ApiGenerateRouteImport } from './routes/api/generate'
+import { Route as ApiRetrieveRouteImport } from './routes/api/retrieve'
+import { Route as ApiSourceRouteImport } from './routes/api/source'
 
-const EvaluationRoute = EvaluationRouteImport.update({
-  id: '/evaluation',
-  path: '/evaluation',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSourceRoute = ApiSourceRouteImport.update({
-  id: '/api/source',
-  path: '/api/source',
+const EvaluationRoute = EvaluationRouteImport.update({
+  id: '/evaluation',
+  path: '/evaluation',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRetrieveRoute = ApiRetrieveRouteImport.update({
-  id: '/api/retrieve',
-  path: '/api/retrieve',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiGenerateRoute = ApiGenerateRouteImport.update({
-  id: '/api/generate',
-  path: '/api/generate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiEvalResultsRoute = ApiEvalResultsRouteImport.update({
-  id: '/api/eval-results',
-  path: '/api/eval-results',
+const ApiAnalyticsRoute = ApiAnalyticsRouteImport.update({
+  id: '/api/analytics',
+  path: '/api/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCorpusRoute = ApiCorpusRouteImport.update({
@@ -53,9 +38,24 @@ const ApiCorpusRoute = ApiCorpusRouteImport.update({
   path: '/api/corpus',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAnalyticsRoute = ApiAnalyticsRouteImport.update({
-  id: '/api/analytics',
-  path: '/api/analytics',
+const ApiEvalResultsRoute = ApiEvalResultsRouteImport.update({
+  id: '/api/eval-results',
+  path: '/api/eval-results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateRoute = ApiGenerateRouteImport.update({
+  id: '/api/generate',
+  path: '/api/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRetrieveRoute = ApiRetrieveRouteImport.update({
+  id: '/api/retrieve',
+  path: '/api/retrieve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSourceRoute = ApiSourceRouteImport.update({
+  id: '/api/source',
+  path: '/api/source',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -136,13 +136,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/evaluation': {
-      id: '/evaluation'
-      path: '/evaluation'
-      fullPath: '/evaluation'
-      preLoaderRoute: typeof EvaluationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -150,32 +143,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/source': {
-      id: '/api/source'
-      path: '/api/source'
-      fullPath: '/api/source'
-      preLoaderRoute: typeof ApiSourceRouteImport
+    '/evaluation': {
+      id: '/evaluation'
+      path: '/evaluation'
+      fullPath: '/evaluation'
+      preLoaderRoute: typeof EvaluationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/retrieve': {
-      id: '/api/retrieve'
-      path: '/api/retrieve'
-      fullPath: '/api/retrieve'
-      preLoaderRoute: typeof ApiRetrieveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/generate': {
-      id: '/api/generate'
-      path: '/api/generate'
-      fullPath: '/api/generate'
-      preLoaderRoute: typeof ApiGenerateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/eval-results': {
-      id: '/api/eval-results'
-      path: '/api/eval-results'
-      fullPath: '/api/eval-results'
-      preLoaderRoute: typeof ApiEvalResultsRouteImport
+    '/api/analytics': {
+      id: '/api/analytics'
+      path: '/api/analytics'
+      fullPath: '/api/analytics'
+      preLoaderRoute: typeof ApiAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/corpus': {
@@ -185,11 +164,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCorpusRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/analytics': {
-      id: '/api/analytics'
-      path: '/api/analytics'
-      fullPath: '/api/analytics'
-      preLoaderRoute: typeof ApiAnalyticsRouteImport
+    '/api/eval-results': {
+      id: '/api/eval-results'
+      path: '/api/eval-results'
+      fullPath: '/api/eval-results'
+      preLoaderRoute: typeof ApiEvalResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate': {
+      id: '/api/generate'
+      path: '/api/generate'
+      fullPath: '/api/generate'
+      preLoaderRoute: typeof ApiGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/retrieve': {
+      id: '/api/retrieve'
+      path: '/api/retrieve'
+      fullPath: '/api/retrieve'
+      preLoaderRoute: typeof ApiRetrieveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/source': {
+      id: '/api/source'
+      path: '/api/source'
+      fullPath: '/api/source'
+      preLoaderRoute: typeof ApiSourceRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -208,13 +208,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
