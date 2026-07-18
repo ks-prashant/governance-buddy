@@ -40,7 +40,15 @@ const UnderstandingSchema = z.object({
    *  can stream to the user immediately, before generation runs. Omitted for a
    *  direct_question (there's no system to restate). */
   restated_understanding: z.string().optional(),
-  subqueries: z.array(SubqueneSchema).min(1),
+  // No .min(1): subqueries are only ever read in retrieve.ts's retrieveCandidatePool,
+  // which is only reached AFTER pipeline.ts's clarify short-circuit (sufficient:false) —
+  // so when the model correctly decides to clarify, it may reasonably emit zero
+  // subqueries (they'll never be used). A hard min(1) here crashed the whole request with
+  // a raw ZodError whenever that happened (observed live: CLR-02 "Is our app compliant?"
+  // under the broadened sufficiency-reformulation prompt) — same shape of bug as the
+  // gaps-array fix in generate.ts. Even an empty array degrades safely downstream: the
+  // retrieval query list always includes the raw input regardless of subqueries.length.
+  subqueries: z.array(SubqueneSchema),
 });
 
 export type QueryUnderstanding = z.infer<typeof UnderstandingSchema>;
