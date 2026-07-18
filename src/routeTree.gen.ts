@@ -10,17 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiGenerateRouteImport } from './routes/api/generate'
+import { Route as ApiSourceRouteImport } from './routes/api/source'
 import { Route as ApiRetrieveRouteImport } from './routes/api/retrieve'
+import { Route as ApiGenerateRouteImport } from './routes/api/generate'
+import { Route as ApiCorpusRouteImport } from './routes/api/corpus'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGenerateRoute = ApiGenerateRouteImport.update({
-  id: '/api/generate',
-  path: '/api/generate',
+const ApiSourceRoute = ApiSourceRouteImport.update({
+  id: '/api/source',
+  path: '/api/source',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRetrieveRoute = ApiRetrieveRouteImport.update({
@@ -28,35 +30,64 @@ const ApiRetrieveRoute = ApiRetrieveRouteImport.update({
   path: '/api/retrieve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateRoute = ApiGenerateRouteImport.update({
+  id: '/api/generate',
+  path: '/api/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCorpusRoute = ApiCorpusRouteImport.update({
+  id: '/api/corpus',
+  path: '/api/corpus',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/corpus': typeof ApiCorpusRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
+  '/api/source': typeof ApiSourceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/corpus': typeof ApiCorpusRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
+  '/api/source': typeof ApiSourceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/corpus': typeof ApiCorpusRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
+  '/api/source': typeof ApiSourceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/generate' | '/api/retrieve'
+  fullPaths:
+    | '/'
+    | '/api/corpus'
+    | '/api/generate'
+    | '/api/retrieve'
+    | '/api/source'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/generate' | '/api/retrieve'
-  id: '__root__' | '/' | '/api/generate' | '/api/retrieve'
+  to: '/' | '/api/corpus' | '/api/generate' | '/api/retrieve' | '/api/source'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/corpus'
+    | '/api/generate'
+    | '/api/retrieve'
+    | '/api/source'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiCorpusRoute: typeof ApiCorpusRoute
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiRetrieveRoute: typeof ApiRetrieveRoute
+  ApiSourceRoute: typeof ApiSourceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,11 +99,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/generate': {
-      id: '/api/generate'
-      path: '/api/generate'
-      fullPath: '/api/generate'
-      preLoaderRoute: typeof ApiGenerateRouteImport
+    '/api/source': {
+      id: '/api/source'
+      path: '/api/source'
+      fullPath: '/api/source'
+      preLoaderRoute: typeof ApiSourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/retrieve': {
@@ -82,14 +113,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRetrieveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate': {
+      id: '/api/generate'
+      path: '/api/generate'
+      fullPath: '/api/generate'
+      preLoaderRoute: typeof ApiGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/corpus': {
+      id: '/api/corpus'
+      path: '/api/corpus'
+      fullPath: '/api/corpus'
+      preLoaderRoute: typeof ApiCorpusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiCorpusRoute: ApiCorpusRoute,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiRetrieveRoute: ApiRetrieveRoute,
+  ApiSourceRoute: ApiSourceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

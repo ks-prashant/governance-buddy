@@ -5,7 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * Design system definition — see design/DESIGN_AND_BRAND_GUIDELINES.md.
+ *
+ * "Editorial, document-forward, instrument-like." Paper neutrals, one restrained
+ * ink-indigo accent, color used almost exclusively to carry meaning. Priority tiers
+ * and applicability read as intensity of the SAME accent family, never as a separate
+ * hue per level (§4.3 "no red for priority" — red is reserved for true errors only).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -59,77 +64,167 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Priority tiers (PRD §8.3) — intensity of the accent family, labeled in words. */
+  --color-tier-applies: var(--tier-applies);
+  --color-tier-applies-foreground: var(--tier-applies-foreground);
+  --color-tier-likely: var(--tier-likely);
+  --color-tier-likely-foreground: var(--tier-likely-foreground);
+  --color-tier-possibly: var(--tier-possibly);
+  --color-tier-possibly-foreground: var(--tier-possibly-foreground);
+
+  /* Applicability labels (PRD §8.4) — Direct/Inferred/Possible, never a percentage. */
+  --color-applicability-direct: var(--applicability-direct);
+  --color-applicability-direct-foreground: var(--applicability-direct-foreground);
+  --color-applicability-inferred: var(--applicability-inferred);
+  --color-applicability-inferred-foreground: var(--applicability-inferred-foreground);
+  --color-applicability-possible: var(--applicability-possible);
+  --color-applicability-possible-foreground: var(--applicability-possible-foreground);
+
+  /* Honest states: refusal is neutral (not error-red); conflict is a distinct "tension" hue. */
+  --color-refusal: var(--refusal);
+  --color-refusal-foreground: var(--refusal-foreground);
+  --color-conflict: var(--conflict);
+  --color-conflict-foreground: var(--conflict-foreground);
+  --color-source-highlight: var(--source-highlight);
+  --color-source-highlight-foreground: var(--source-highlight-foreground);
+
+  /* Three type roles (§4.4) — one serif, one sans, one mono, no more. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+
+  /* Paper — warm near-white, not stark clinical white. */
+  --background: oklch(0.9835 0.004 80);
+  --foreground: oklch(0.23 0.014 75);
+  --card: oklch(0.9835 0.004 80);
+  --card-foreground: oklch(0.23 0.014 75);
+  --popover: oklch(0.995 0.003 80);
+  --popover-foreground: oklch(0.23 0.014 75);
+
+  /* One restrained accent — deep ink-indigo. Used sparingly: links, primary actions, citations. */
+  --primary: oklch(0.34 0.09 264);
+  --primary-foreground: oklch(0.99 0.004 80);
+  --secondary: oklch(0.94 0.007 80);
+  --secondary-foreground: oklch(0.23 0.014 75);
+  --muted: oklch(0.945 0.007 80);
+  --muted-foreground: oklch(0.475 0.016 75);
+  --accent: oklch(0.92 0.02 264);
+  --accent-foreground: oklch(0.3 0.08 264);
+
+  /* True errors only — dialed down, never used for priority (§4.3). */
+  --destructive: oklch(0.55 0.17 24);
+  --destructive-foreground: oklch(0.99 0.004 80);
+
+  --border: oklch(0.885 0.008 80);
+  --input: oklch(0.885 0.008 80);
+  --ring: oklch(0.34 0.09 264);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar: oklch(0.97 0.005 80);
+  --sidebar-foreground: oklch(0.23 0.014 75);
+  --sidebar-primary: oklch(0.34 0.09 264);
+  --sidebar-primary-foreground: oklch(0.99 0.004 80);
+  --sidebar-accent: oklch(0.94 0.007 80);
+  --sidebar-accent-foreground: oklch(0.23 0.014 75);
+  --sidebar-border: oklch(0.885 0.008 80);
+  --sidebar-ring: oklch(0.34 0.09 264);
+
+  /* Priority tiers — same accent family, descending intensity, never red. */
+  --tier-applies: oklch(0.34 0.09 264);
+  --tier-applies-foreground: oklch(0.99 0.004 80);
+  --tier-likely: oklch(0.6 0.05 264);
+  --tier-likely-foreground: oklch(0.99 0.004 80);
+  --tier-possibly: oklch(0.93 0.012 264);
+  --tier-possibly-foreground: oklch(0.4 0.03 264);
+
+  /* Applicability — filled / half / outline treatment of the same accent, not a color scale. */
+  --applicability-direct: oklch(0.34 0.09 264);
+  --applicability-direct-foreground: oklch(0.99 0.004 80);
+  --applicability-inferred: oklch(0.88 0.03 264);
+  --applicability-inferred-foreground: oklch(0.3 0.08 264);
+  --applicability-possible: oklch(0.9835 0.004 80);
+  --applicability-possible-foreground: oklch(0.475 0.016 75);
+
+  /* Refusal reads as an intentional, calm state — neutral, not error. */
+  --refusal: oklch(0.94 0.007 80);
+  --refusal-foreground: oklch(0.32 0.016 75);
+  /* Conflict — a distinct amber/ochre "tension" hue; signals disagreement, not danger. */
+  --conflict: oklch(0.9 0.05 85);
+  --conflict-foreground: oklch(0.38 0.07 70);
+
+  /* Source-viewer highlight — keeps highlighted text ≥4.5:1 (PRD §9). */
+  --source-highlight: oklch(0.92 0.05 95);
+  --source-highlight-foreground: oklch(0.25 0.02 80);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --background: oklch(0.19 0.011 75);
+  --foreground: oklch(0.94 0.006 80);
+  --card: oklch(0.223 0.012 75);
+  --card-foreground: oklch(0.94 0.006 80);
+  --popover: oklch(0.21 0.012 75);
+  --popover-foreground: oklch(0.94 0.006 80);
+
+  --primary: oklch(0.78 0.09 264);
+  --primary-foreground: oklch(0.16 0.014 75);
+  --secondary: oklch(0.28 0.013 75);
+  --secondary-foreground: oklch(0.94 0.006 80);
+  --muted: oklch(0.27 0.013 75);
+  --muted-foreground: oklch(0.68 0.014 80);
+  --accent: oklch(0.31 0.035 264);
+  --accent-foreground: oklch(0.85 0.06 264);
+
+  --destructive: oklch(0.62 0.16 24);
+  --destructive-foreground: oklch(0.97 0.005 80);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.78 0.09 264);
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar: oklch(0.213 0.012 75);
+  --sidebar-foreground: oklch(0.94 0.006 80);
+  --sidebar-primary: oklch(0.78 0.09 264);
+  --sidebar-primary-foreground: oklch(0.16 0.014 75);
+  --sidebar-accent: oklch(0.28 0.013 75);
+  --sidebar-accent-foreground: oklch(0.94 0.006 80);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: oklch(0.78 0.09 264);
+
+  --tier-applies: oklch(0.72 0.1 264);
+  --tier-applies-foreground: oklch(0.15 0.014 75);
+  --tier-likely: oklch(0.52 0.06 264);
+  --tier-likely-foreground: oklch(0.96 0.006 80);
+  --tier-possibly: oklch(0.29 0.02 264);
+  --tier-possibly-foreground: oklch(0.82 0.03 264);
+
+  --applicability-direct: oklch(0.72 0.1 264);
+  --applicability-direct-foreground: oklch(0.15 0.014 75);
+  --applicability-inferred: oklch(0.33 0.045 264);
+  --applicability-inferred-foreground: oklch(0.85 0.05 264);
+  --applicability-possible: oklch(0.19 0.011 75);
+  --applicability-possible-foreground: oklch(0.68 0.014 80);
+
+  --refusal: oklch(0.27 0.013 75);
+  --refusal-foreground: oklch(0.82 0.012 80);
+  --conflict: oklch(0.33 0.06 80);
+  --conflict-foreground: oklch(0.87 0.06 90);
+
+  --source-highlight: oklch(0.34 0.06 95);
+  --source-highlight-foreground: oklch(0.95 0.015 95);
 }
 
 @layer base {
@@ -140,5 +235,17 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  /* Source serif text — quoted primary-source language reads as "not our words" (§4.4). */
+  .font-source {
+    font-family: var(--font-serif);
+  }
+  .font-citation {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
   }
 }
