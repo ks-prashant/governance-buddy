@@ -29,11 +29,45 @@ re-deriving it from git log or re-reading every phase section.
 | B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
 | D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed — **formal eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 3 root-cause fixes applied + deployed since. |
-| E — Full corpus + cross-framework | 🟡 Parsers done (4/4) + validate gate green on all 5; embed/load/promote + 5-dim decomposition + conflicts + full eval still to do (embed/load blocked on payment) | all 5 frameworks pass validate: golden anchors 22/22 GDPR · 27/27 EU AI Act · 9/9 CSF · 6/6 SSDF · 9/9 AI RMF |
+| E — Full corpus + cross-framework | 🟡 Code done: parsers (4/4), combined-snapshot loader + migration 0005, 5-dim decomposition, cross-framework citation pinning, conflicts seed script. Pending: the DB migration + combined ingestion + conflict seed must RUN in Lovable's sandbox (service-role key lives there); full 64-item eval still deferred on Anthropic budget | all 5 frameworks pass validate; retrieval/pipeline changes tsc-clean |
 | F — Hero UI | ⬜ Not started | — |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+3) — Phase E code (steps 2–4) done; DB-side execution pending on
+Lovable.** User confirmed Voyage credits are available, so ingestion is unblocked. Wrote the
+code half of Phase E and pushed (`3cc0b9f`):
+- **migration 0005** — widen `chunks_citation_label_unique_idx` to
+  `(snapshot_id, framework_id, citation_label)`. The old 2-col index would reject the
+  combined load (435 child labels reused across frameworks, e.g. GDPR vs EU AI Act
+  "Art. 5(1)"). Per-framework uniqueness (what `validate.ts` checks) still enforced.
+- **combined single-snapshot loader** — `load.ts` gained `loadFrameworks(parsed[])`
+  (all frameworks → ONE snapshot, promote once; per-framework parent label→id maps so a
+  reused label never mis-links children); `run.ts` validates every framework before
+  touching the DB, then loads them together. Fixes the "one snapshot per framework, only
+  the last active" bug flagged earlier.
+- **5-dim decomposition (DR-4)** — `understand.ts` now fans a system_description across
+  privacy/ai_regulation/ai_risk/cybersecurity/secure_development in each framework's own
+  terminology (direct_questions still expand for recall, no forced fan-out).
+- **cross-framework citation pinning** — `retrieve.ts`'s `extractCitationPatterns` extended
+  from GDPR articles to EU AI Act annexes, NIST CSF/SSDF dotted codes, and AI RMF
+  subcategories (unit-tested inline).
+- **conflicts** — new `ingestion/seed_conflicts.ts` seeds the curated `conflicts` table
+  with CONF-01..04 (resolving each clause to a chunk_id in the active snapshot). NOTE: the
+  model's own `conflicts_with` flag (already wired generate→assemble) is the ACTIVE
+  surfacing path; the curated table is a durable backstop **not yet read on the critical
+  path** — a documented follow-up if the deferred CONF eval shows the model flag alone is
+  insufficient.
+All tsc-clean. **Blocked from finishing locally:** `SUPABASE_SERVICE_ROLE_KEY` is
+deliberately NOT in local `.env.local` (empty — the §5.5 security property: the DB write key
+lives only in Lovable's managed secrets), so `load.ts`/`seed_conflicts.ts` can't run here.
+**Next action (mutates the LIVE corpus — currently GDPR-only, becomes all 5):** in Lovable's
+sandbox, (1) apply migration 0005, (2) `bun ingestion/run.ts gdpr eu_ai_act nist_csf
+nist_ssdf nist_ai_rmf`, (3) `bun ingestion/seed_conflicts.ts`; then verify cheaply via the
+deployed `/api/retrieve` diagnostic endpoint (Haiku+Voyage only, ~$0.01 — a cross-framework
+system description should return `framework_id`s spanning multiple frameworks). Full 64-item
+eval (step 5) stays deferred on Anthropic budget (~$2.5 left, needs ~$6–12).
 
 **2026-07-18 (latest+2) — ADV-03/ADV-12 root-caused to a real architectural gap; deferred
 by design, not by budget.** Spent one more small probe (~$0.3–0.4, no judge — direct
