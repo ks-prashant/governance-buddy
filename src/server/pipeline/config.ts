@@ -69,12 +69,10 @@ export const RETRIEVAL = {
   rrfK: Number(process.env.RETRIEVAL_RRF_K ?? 60),
   /**
    * Minimum reranker score for a candidate to be considered relevant at all.
-   * NOT YET WIRED — retrieve.ts returns whatever the pool contains regardless of
-   * score; nothing currently checks this value. It's defined here (not invented
-   * ad hoc later) because Phase D's honest "nothing clearly applies" / refusal
-   * path (system design §7.3, §15) is exactly where it belongs — the pipeline
-   * shouldn't attempt generation at all when every candidate is below this floor.
-   * Tune against the golden set once wired.
+   * WIRED (Phase D): pipeline.ts's refusal gate checks the max rerankScore across
+   * all survivors (including citation-pinned matches, which always score 1) against
+   * this floor before attempting generation — the honest "nothing clearly applies" /
+   * refusal path (system design §7.3, §15). Tune against the golden set.
    */
   relevanceFloor: Number(process.env.RETRIEVAL_RELEVANCE_FLOOR ?? 0.3),
 } as const;

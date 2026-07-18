@@ -11,6 +11,110 @@
 
 ---
 
+## 0. Status & session log (read this first in a new session)
+
+**Standing instruction:** whenever a phase (§A–§J) is completed, or a session ends
+mid-phase with meaningful progress, add a dated entry at the TOP of the session log
+below (most recent first) before ending the turn. An entry should say: what phase,
+what was actually done, what was learned/fixed, the current blocker (if any) and what
+the next concrete action is, and the latest commit SHA. A fresh Claude Code session
+should be able to read this section alone and know exactly where to resume — without
+re-deriving it from git log or re-reading every phase section.
+
+**Current status at a glance:**
+
+| Phase | Status | Gate result |
+|---|---|---|
+| A — Workspace setup | ✅ Done | trivial deploy + front end load confirmed |
+| B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
+| C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
+| D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed — **formal eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 3 root-cause fixes applied + deployed since. |
+| E — Full corpus + cross-framework | ⬜ Not started | — |
+| F — Hero UI | ⬜ Not started | — |
+| G–J | ⬜ Not started | — |
+
+### Session log (most recent first)
+
+**2026-07-18 — Phase D fixes verified + full codebase review.** Anthropic credits were
+blocked most of this session (both the local eval-judge key and the deployed product's
+own key hit "credit balance too low" on Anthropic's side; confirmed via direct API test,
+not assumption). Per user instruction, did NOT re-run the formal eval — instead did a
+full static code review of everything built so far (all of `src/server/pipeline/*.ts`,
+both API routes, `ingestion/{load,validate}.ts`) and fixed 8 real bugs/gaps found by
+tracing logic end-to-end, verified via `bunx tsc --noEmit` + `bun run build`:
+- `generate.ts`: removed an overly-strict zod `.min(1)` on `supporting_chunk_ids` that
+  would crash the ENTIRE response if the model ever emitted one obligation with zero
+  ids — the existing post-fence filter already handles this gracefully, the schema
+  constraint was pre-empting it.
+- `generate.ts`: `conflicts_with` wasn't validated against the known chunk-id set the
+  way `supporting_chunk_ids` is — fenced it the same way.
+- `retrieve.ts`: wrapped `matchByCitation` in try/catch — a citation-pin RPC hiccup
+  shouldn't crash the whole retrieval (it's an enhancement, not load-bearing).
+- `config.ts`: fixed a stale "NOT YET WIRED" comment on `relevanceFloor` — it's been
+  wired into `pipeline.ts`'s refusal gate since Phase D landed.
+- `pipeline.ts`: `getSnapshotDate` silently swallowed its Supabase error; now logged.
+- `routes/api/generate.ts`: wrapped the dynamic imports + non-streaming path in
+  try/catch, matching `retrieve.ts`'s pattern (a module-load failure was previously
+  falling through to the generic HTML error page instead of clean JSON).
+- `ingestion/validate.ts`: **the most consequential find** — the validate gate checked
+  child `citation_label` uniqueness but never PARENT label uniqueness. `load.ts` joins
+  children to parents via a `Map` keyed by parent `citation_label` — a collision there
+  would silently link children to the WRONG parent with zero error, anywhere. Added the
+  missing check to `validate.ts`, plus a defensive throw in `load.ts` itself (defense in
+  depth, in case `load.ts` is ever run without the gate). Not yet triggered by GDPR (no
+  collisions there), but a real risk once Phase E's more complex hierarchies (Annexes,
+  subcategories, task groups) are parsed.
+- `evals/run_eval.mjs`: stale header comment referencing "TODO adapters" that are
+  already wired; corrected.
+Latest commit: (see git log — this session's fixes not yet committed as of writing this
+entry; commit immediately after, before doing anything else in a resumed session).
+**Next action:** commit + push + sync + deploy these review fixes, then wait for
+Anthropic credits to actually resolve (verify with a direct `curl`/`fetch` test, not by
+assuming a "credits added" claim took effect) before re-running the Phase D eval.
+
+**2026-07-18 (earlier) — Phase D built + first eval run.** Built the full grounded-
+generation pipeline streaming-first (`generate.ts`, `validate.ts`, `assemble.ts`,
+`pipeline.ts`, `routes/api/generate.ts`). Spot-checked manually (answer/refuse/clarify
+all correct). Wired `evals/run_eval.mjs` to the real deployed endpoint + a pinned judge
+model. Ran the actual 24-item GDPR-only subset (DL-01..04, ADV-02/03/12, OOC-01..12,
+ADV-09, CLR-01/02/03/05) for the first time: groundedness 93.3% FAIL, correct-refusal
+83.3% FAIL, citation 93.8% PASS. Diagnosed every failing item by hand (not guessed) and
+fixed 3 real gaps: (1) `understand.ts` bare-compliance-questions ("is our app
+compliant?") were classified `direct_question` (always-sufficient), bypassing the
+clarify gate — reclassified; also found+fixed the tool-schema's own field descriptions
+still contradicting the fixed system prompt. (2) clarifying questions sometimes bundled
+2+ asks into one sentence — added an explicit anti-bundling instruction. (3) OOC-04/06
+("close-neighbor trap" items — ISO certs, UK GDPR) produced a full obligation map from
+tangentially-adjacent GDPR material instead of refusing — added a generation-prompt rule
+against generalizing from a different-but-similar-sounding regime. Also fixed a harness
+bug: judge `max_tokens` was 2000, too low for Prompt B's per-claim breakdown, risking a
+truncated response being misread as a false "contradicted" claim (confirmed via a manual
+re-run at 4000 tokens on DL-01: zero contradicted claims). Raised to 6000. ADV-12's
+failure is likely a subset-curation error on my part (its `must_include` assumes EU AI
+Act corpus/knowledge that doesn't exist until Phase E) rather than a pipeline defect —
+re-evaluate once Phase E lands. Deployed and confirmed live via `get_project`'s
+`latest_commit_sha`. **Learned mid-session:** `deploy_project` deploys the builder
+platform's own synced sandbox tree, not directly from GitHub — always sync first, then
+deploy, then verify the deployed `latest_commit_sha` matches before trusting a live test.
+
+**2026-07-17 — Architecture review + doc sync + Phase C perf/security fixes.** Stepped
+back after Phases A–C to review the whole system at once rather than only
+phase-by-phase. Found and fixed a CRITICAL security issue (RLS disabled on all tables
+did not mean server-only on Supabase — its default template grants anon/authenticated
+table access regardless of RLS state; the public non-secret anon key could read+write
+every table, verified empirically). Fixed: enable RLS with zero policies on every
+table (`service_role` bypasses RLS regardless, so server-side code is unaffected).
+Measured real latency (4.2–9.5s range across iterations) and made two real fixes
+(batch embedding calls; parallelize `understand()` + snapshot lookup) — confirmed via
+direct measurement, not assumption. Synced `architecture/SYSTEM_DESIGN.md`,
+`docs/PRD.md`, and this build plan to reflect what was actually built vs. originally
+assumed (TanStack Start on Cloudflare Workers, not Supabase Edge Functions; forced
+tool-use as the structured-output mechanism; the two retrieval bugs found in Phase C
+itself — keyword search silently AND-ing every word, and no citation-aware lookup for
+named-unit queries).
+
+---
+
 ## A. Workspace setup & the rules of the loop
 
 ### A.0 Stack, concretely (how the system design maps onto Lovable Cloud)
@@ -145,7 +249,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 5. **Wire the eval harness:** point `evals/run_eval.mjs` `callProduct()` at the deployed streaming endpoint (consume the full stream, assemble the final response for grading); run the **GDPR subset** through the real pipeline (use the Batch API for judge calls).
 
 **Acceptance gate (the big one):** on the GDPR subset — **groundedness ≥95%, citation accuracy ≥90%, correct-refusal ≥90%**, zero verdict leaks, AND the first tier actually streams to a client within the 5s budget end-to-end (not just in theory). If short on the quality metrics, fix retrieval/prompt/validation here, not later. If short on latency, do not defer the fix to Phase F — it belongs here.
-**Commit point D.**
+**Commit point D. [🟡 Built + spot-checked + code-reviewed; gate NOT yet formally met.]** Full detail in §0's session log — summary: first real eval run (24-item GDPR subset) scored groundedness 93.3%/correct-refusal 83.3% (both FAIL), citation 93.8% (PASS). Root-caused and fixed 3 real gaps (a compliance-question classification gap bypassing the clarify path, bundled clarifying questions, and a "close-neighbor trap" generation gap producing obligations from the wrong regime's adjacent material) plus a harness bug (judge token truncation) and, in a follow-up full codebase review, 8 further bugs/gaps (see §0). All fixes deployed and confirmed via `get_project`'s `latest_commit_sha`. **Not yet re-measured against the gate** — blocked on Anthropic account credits during this session; re-run `evals/run_eval.mjs` with the `SUBSET_IDS` below once credits are confirmed working (test with a direct API call first, don't assume). GDPR Phase D subset ids: `DL-01,DL-02,DL-03,DL-04,ADV-02,ADV-03,ADV-12,OOC-01,OOC-02,OOC-03,OOC-04,OOC-05,OOC-06,OOC-07,OOC-08,OOC-09,OOC-10,OOC-11,OOC-12,ADV-09,CLR-01,CLR-02,CLR-03,CLR-05` (24 items — excludes cross-framework/other-framework/CONF items, which need Phase E's corpus).
 
 ---
 

@@ -41,7 +41,13 @@ export const IMPACT = ["high", "medium", "low"] as const;
 const ObligationSchema = z.object({
   statement: z.string().min(1),
   rationale: z.string().min(1),
-  supporting_chunk_ids: z.array(z.string()).min(1),
+  // No .min(1) here: if the model ever emits ONE obligation with zero/invalid chunk
+  // ids (violating the "one or more" prompt instruction, which isn't a hard JSON-schema
+  // constraint), a strict min(1) would fail parsing the ENTIRE response and crash the
+  // whole request. The existing post-fence filter below already drops any obligation
+  // left with zero valid ids after checking against the known set — let that mechanism
+  // do the job instead of a zod-level constraint that aborts everything on one bad item.
+  supporting_chunk_ids: z.array(z.string()),
   applicability: z.enum(APPLICABILITY),
   impact: z.enum(IMPACT),
   conflicts_with: z.string().optional(),
@@ -228,12 +234,18 @@ export async function generateObligationMap(args: {
 
   // Grounding fence (mechanical): drop any cited id not in the supplied set, then drop
   // any obligation left with no valid citation. Invented ids can never reach the user.
+  // conflicts_with gets the same treatment — it's still a citation-shaped id from the
+  // model, not exempt from the "only ids we actually supplied" invariant just because
+  // it isn't the primary citation.
   const droppedInventedIds: string[] = [];
   const fenced = parsed.obligations
     .map((o) => {
       const valid = o.supporting_chunk_ids.filter((id) => validIds.has(id));
       for (const id of o.supporting_chunk_ids) if (!validIds.has(id)) droppedInventedIds.push(id);
-      return { ...o, supporting_chunk_ids: valid };
+      const conflictsWith =
+        o.conflicts_with && validIds.has(o.conflicts_with) ? o.conflicts_with : undefined;
+      if (o.conflicts_with && !conflictsWith) droppedInventedIds.push(o.conflicts_with);
+      return { ...o, supporting_chunk_ids: valid, conflicts_with: conflictsWith };
     })
     .filter((o) => o.supporting_chunk_ids.length > 0);
 

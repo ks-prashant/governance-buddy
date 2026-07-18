@@ -59,11 +59,14 @@ const EMPTY_MESSAGE =
   "flagging that its sources don't support a confident answer here.";
 
 async function getSnapshotDate(db: SupabaseClient, snapshotId: string): Promise<string> {
-  const { data } = await db
+  const { data, error } = await db
     .from("corpus_snapshots")
     .select("snapshot_date")
     .eq("id", snapshotId)
     .single();
+  // Non-fatal (falls back to "unknown" rather than failing the request), but a real
+  // DB error here should be visible in logs, not silently swallowed.
+  if (error) console.error("getSnapshotDate failed:", error.message);
   return (data?.snapshot_date as string) ?? "unknown";
 }
 

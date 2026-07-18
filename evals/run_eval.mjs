@@ -4,8 +4,11 @@
 // grades with an LLM judge per judge_prompts.md, writes results.json + report.md,
 // and exits non-zero if a gating metric is below target (PRD §11.3).
 //
-// Wire the two adapters marked `TODO` to your real stack, then:
-//   node run_eval.mjs golden_set.jsonl
+// Adapters are wired (callProduct -> the deployed /api/generate; callJudge -> Anthropic
+// directly). Needs ANTHROPIC_API_KEY in the environment (the judge runs here, in the
+// harness — separate from whatever key the deployed product itself uses). Run:
+//   bun evals/run_eval.mjs evals/golden_set.jsonl
+//   SUBSET_IDS="DL-01,DL-02" bun evals/run_eval.mjs evals/golden_set.jsonl   # a subset
 //
 // The grading logic mirrors judge_prompts.md. If you change the prompts there, change
 // the JUDGE_* prompt builders below to match, and bump JUDGE_PROMPT_VERSION.

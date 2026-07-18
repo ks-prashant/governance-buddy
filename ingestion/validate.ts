@@ -79,6 +79,19 @@ export function validateFramework(fw: ParsedFramework, goldenLines: string[]): V
     if (p.children.length === 0) errors.push(`Parent with no children: ${p.anchor}`);
   }
 
+  // 1c. Unique parent citation labels. load.ts joins children to their parent via a
+  // Map keyed by parent citation_label — a collision would silently link children to
+  // the WRONG parent (the later one overwrites the earlier one in the map) with no
+  // error anywhere. This is the parent-side counterpart to the child check above,
+  // which only ever caught child-label collisions, not this one.
+  const seenParentLabels = new Set<string>();
+  for (const p of fw.parents) {
+    if (seenParentLabels.has(p.citation_label)) {
+      errors.push(`Duplicate PARENT citation_label: ${p.citation_label}`);
+    }
+    seenParentLabels.add(p.citation_label);
+  }
+
   // 2. Golden-anchor resolution for this framework.
   const goldenName = GOLDEN_FRAMEWORK_NAME[fw.framework_id];
   const expected = new Set<string>();

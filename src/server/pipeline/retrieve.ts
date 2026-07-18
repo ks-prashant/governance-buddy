@@ -267,11 +267,18 @@ export async function runRetrieval(
   const patterns = extractCitationPatterns(originalInput);
   let pinned: RerankedCandidate[] = [];
   if (patterns.length > 0) {
-    const rows = await matchByCitation(db, patterns, opts);
-    const seen = new Set(reranked.map((r) => r.id));
-    pinned = rows
-      .filter((r) => !seen.has(r.id))
-      .map((r) => ({ ...r, rerankScore: 1 }));
+    try {
+      const rows = await matchByCitation(db, patterns, opts);
+      const seen = new Set(reranked.map((r) => r.id));
+      pinned = rows
+        .filter((r) => !seen.has(r.id))
+        .map((r) => ({ ...r, rerankScore: 1 }));
+    } catch (err) {
+      // Citation-pinning is an enhancement, not load-bearing — degrade gracefully to
+      // the reranked pool alone rather than failing the whole request over it
+      // (system design §15's "degrade, don't fabricate or crash" principle).
+      console.error("matchByCitation failed, continuing without citation pinning:", err);
+    }
   }
   timings.citation_pin_ms = Date.now() - t;
 

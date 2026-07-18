@@ -56,6 +56,22 @@ export async function loadFramework(parsed: ParsedFramework): Promise<LoadResult
   if (verErr) throw new Error(`framework_versions insert failed: ${verErr.message}`);
 
   // 3. Parents — insert in batches, capturing ids keyed by (unique) citation_label.
+  // Defense in depth: ingestion/validate.ts is the primary gate for this invariant,
+  // but load.ts shouldn't blindly trust it was run first — a duplicate parent label
+  // would otherwise silently link children to the WRONG parent (the later insert's id
+  // overwrites the earlier one in labelToId) with no error anywhere.
+  const parentLabelCounts = new Map<string, number>();
+  for (const p of parsed.parents) {
+    parentLabelCounts.set(p.citation_label, (parentLabelCounts.get(p.citation_label) ?? 0) + 1);
+  }
+  const duplicateParentLabels = [...parentLabelCounts.entries()].filter(([, n]) => n > 1);
+  if (duplicateParentLabels.length > 0) {
+    throw new Error(
+      `Duplicate parent citation_label(s), refusing to load (would silently mis-link ` +
+        `children): ${duplicateParentLabels.map(([label]) => label).join(", ")}`,
+    );
+  }
+
   const parentRows = parsed.parents.map((p) => ({
     snapshot_id,
     framework_id: parsed.framework_id,

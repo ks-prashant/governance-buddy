@@ -29,12 +29,26 @@ export const Route = createFileRoute("/api/generate")({
         const frameworkId = typeof body.frameworkId === "string" ? body.frameworkId : undefined;
         const wantStream = body.stream !== false;
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { runPipeline, collectPipeline } = await import("@/server/pipeline/pipeline");
+        // Guard the dynamic imports + non-streaming path the same way retrieve.ts does —
+        // a module-load hiccup here would otherwise fall through to the framework's
+        // generic HTML error page instead of a clean JSON error (system design §15).
+        let supabaseAdmin: Awaited<
+          typeof import("@/integrations/supabase/client.server")
+        >["supabaseAdmin"];
+        let runPipeline: typeof import("@/server/pipeline/pipeline").runPipeline;
+        let collectPipeline: typeof import("@/server/pipeline/pipeline").collectPipeline;
+        try {
+          ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
+          ({ runPipeline, collectPipeline } = await import("@/server/pipeline/pipeline"));
 
-        if (!wantStream) {
-          const result = await collectPipeline(supabaseAdmin, input, { frameworkId });
-          return json(result);
+          if (!wantStream) {
+            const result = await collectPipeline(supabaseAdmin, input, { frameworkId });
+            return json(result);
+          }
+        } catch (err) {
+          console.error("generate endpoint setup failed:", err);
+          const message = err instanceof Error ? err.message : String(err);
+          return json({ error: message }, { status: 500 });
         }
 
         const encoder = new TextEncoder();
