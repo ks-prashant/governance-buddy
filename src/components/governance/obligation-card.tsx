@@ -4,6 +4,7 @@
  * Every substantive statement is cited — there is no path to render a card without
  * at least one citation (PRD §8.3 FR-3.4).
  */
+import { AlertTriangle } from "lucide-react";
 import type { AssembledObligation, Citation } from "@/hooks/use-obligation-stream";
 import { ApplicabilityChip } from "./applicability-chip";
 import { CitationChip } from "./citation-chip";
@@ -29,26 +30,17 @@ export function ObligationCard({
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {obligation.citations.map((c) => (
           <CitationChip key={c.chunk_id} citation={c} onOpen={onOpenSource} />
         ))}
+        {obligation.conflicts_with && (
+          <span className="inline-flex items-center gap-1 text-xs text-conflict-foreground/90">
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+            In tension with another framework — see below
+          </span>
+        )}
       </div>
-
-      {obligation.conflicts_with && (
-        <div className="mt-4 rounded-md border border-conflict-foreground/20 bg-conflict/30 p-3">
-          <p className="text-xs font-medium text-conflict-foreground">
-            These frameworks pull in different directions
-          </p>
-          <p className="mt-1 text-xs text-conflict-foreground/90">
-            This obligation is in tension with a provision elsewhere in the corpus — shown here, not
-            resolved.
-          </p>
-          <div className="mt-2">
-            <CitationChip citation={obligation.conflicts_with} onOpen={onOpenSource} variant="tension" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

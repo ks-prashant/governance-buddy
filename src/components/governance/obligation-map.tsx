@@ -7,6 +7,7 @@
  */
 import type { AssembledResult, Citation, Tier } from "@/hooks/use-obligation-stream";
 import { ObligationCard } from "./obligation-card";
+import { ConflictSection } from "./conflict-section";
 
 const TIER_ORDER: Tier[] = ["applies", "likely", "possibly"];
 
@@ -27,6 +28,13 @@ export function ObligationMap({
 
   return (
     <div className="space-y-8">
+      {result.overall_confidence === "low" && (
+        <div className="rounded-lg border border-border bg-secondary/60 px-4 py-3 text-sm text-secondary-foreground">
+          Overall retrieval confidence on this mapping is low — treat it as a starting point for
+          review, not a finished answer.
+        </div>
+      )}
+
       {nonEmptyTiers.map((tier) => (
         <section key={tier} aria-label={TIER_META[tier].heading}>
           <div className="mb-3 flex items-center gap-2">
@@ -43,6 +51,8 @@ export function ObligationMap({
         </section>
       ))}
 
+      <ConflictSection result={result} onOpenSource={onOpenSource} />
+
       {result.gaps.length > 0 && (
         <section aria-label="Gaps and uncertainty">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">
@@ -56,13 +66,6 @@ export function ObligationMap({
             </ul>
           </div>
         </section>
-      )}
-
-      {result.overall_confidence === "low" && (
-        <div className="rounded-lg border border-border bg-secondary/60 px-4 py-3 text-sm text-secondary-foreground">
-          Overall retrieval confidence on this mapping is low — treat it as a starting point for
-          review, not a finished answer.
-        </div>
       )}
     </div>
   );
