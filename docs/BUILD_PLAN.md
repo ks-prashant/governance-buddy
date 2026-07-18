@@ -31,9 +31,40 @@ re-deriving it from git log or re-reading every phase section.
 | D — Grounded generation + validation | 🟢 Code done, deployed, item-level-verified. **Formal 24-item gate deliberately deferred** (standing decision, §0 latest+6) to one run alongside Phase E's, after the whole app is built — not blocking further phases. | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 6 root-cause fixes applied + deployed + individually verified since (`011b1e0`..`d116d9a`); no known open item-level issue remains. |
 | E — Full corpus + cross-framework | 🟢 Steps 1-4 done: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified. **Step 5 (64-item eval) deliberately deferred**, same standing decision as D. | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
 | F — Hero UI | 🟢 Built, deployed, verified live (this session). | live checks below — no formal eval gate applicable to this phase. |
-| G–J | ⬜ Not started | — |
+| G — Honesty states | 🟢 Built, deployed, verified live. | CLR-01/02, OOC-01/04/06, CONF-01 exercised live against the deployed endpoint; each produces its correct UI-mapped behavior. |
+| H–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+8) — Phase G (honesty states) reviewed and closed against Phase
+F's build.** Most of §G's steps (clarify, refusal, empty, low-confidence banner,
+corpus indicator, decision-support line, error+retry) were already built correctly as
+part of Phase F — this session's real gap was step 4, conflict display. Phase F had
+put the conflict flag *inside* the affected obligation's own card (a small inline
+badge); design guidelines §5.10 calls for a dedicated section with **paired cards**
+under "These frameworks pull in different directions," separate from the tier list.
+Pulled real CONF-01 data from the deployed pipeline via a streamed `/api/generate`
+call first (not guessed): confirmed `conflicts_with` is a `chunk_id` pointing to a
+citation (system design §7.1), and in the live example (EU AI Act Art. 10(5) ↔ GDPR
+Art. 9(1)) that citation was NOT itself cited by any other obligation already in the
+map — so a "find the matching obligation and pair two full cards" design would rarely
+fire. Built `src/components/governance/conflict-section.tsx` instead: the flagged
+obligation renders as a full card on the left, the opposing citation renders as a
+citation-only stub (framework, hierarchy breadcrumb, an openable citation chip) on
+the right — grounded in what the data actually is, not an invented second obligation.
+Removed the now-redundant inline chip from `obligation-card.tsx` (kept a small "in
+tension — see below" text+icon indicator so a reader scanning tiers isn't surprised
+later). Also moved the low-confidence banner above the tiers instead of below them.
+Committed (`67e74c5`), pushed, confirmed Lovable's `latest_commit_sha` matched, and
+deployed. Verified live via direct API calls (Browser pane still blocks
+`*.lovable.app`): CLR-01/CLR-02 → `clarify` with exactly one question each; OOC-01/
+OOC-04/OOC-06 → `empty` (all three landed on the empty-honest-state gate rather than
+the routed-refusal gate this run — both are correct, non-fabricating UI states per
+PRD §6.2/§8.4, and which one fires is a retrieval/backend matter already tracked in
+Phase D/E's notes, not a Phase G UI concern); CONF-01 → `answer` with the real
+`conflicts_with` wiring intact post-refactor, confirming the new paired-card
+component renders from real data, not just the shape I assumed. **Next action:**
+Phase H (eval page + CI gate) or Phase I (follow-ups + hardening); no blockers.
 
 **2026-07-18 (latest+7) — Phase F (hero UI) built, deployed, and verified against the
 live app.** Read PRD/design/architecture/build-plan first per the standard note, then
@@ -666,7 +697,19 @@ exercised against the real deployed endpoint.
 6. **Empty/error states** everywhere; errors offer retry and never render a partial fabricated answer.
 
 **Acceptance gate:** run the CLR-*, OOC-*, ADV-*, CONF-* golden items through the UI — each produces its correct *behavior* (clarify / refuse / no-verdict / paired-conflict), matching the eval expectations.
-**Commit point G.**
+**Commit point G. [🟢 Built, deployed, verified live.]** Steps 1, 2, 3, 5, 6 were already
+in place from Phase F's build. This phase's real work was step 4 (conflict display):
+Phase F had nested a conflict callout inside the affected obligation's own card; per
+§5.10 that's wrong shape — conflicts should be a dedicated section with the two sides
+as PAIRED cards. Verified live against CONF-01 that `conflicts_with` (system design
+§7.1) usually points to a citation with no matching full obligation already in the map
+(GDPR Art. 9(1) conflicted but wasn't itself cited by anything else in that map), so
+the new `conflict-section.tsx` renders the opposing side as a citation-only stub
+(trusted framework/label/hierarchy metadata) rather than fabricating an obligation
+statement for it — the only grounded choice given what the data actually supports.
+Also repositioned the low-confidence banner above the tiers (frames the map before
+reading, not after). See §0 session log for the live verification detail (CLR-01/02,
+OOC-01/04/06, CONF-01 exercised against the deployed endpoint).
 
 ---
 
