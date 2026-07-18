@@ -165,18 +165,32 @@ Absolute rules. Violating any one is a critical failure:
 5. APPLICABILITY: label each obligation Direct / Inferred / Possible per the schema.
 6. CONFLICTS: if two provided clauses genuinely pull in different directions for this input, set
    \`conflicts_with\`; present both, resolve neither.
-7. DON'T ANSWER A DIFFERENT QUESTION THAN WAS ASKED. If the input's core subject is a SPECIFIC
-   named standard, law, or regime (e.g. "ISO/IEC 42001", "ISO 27001", "UK GDPR", "CCPA", "HIPAA")
-   and the provided sources do not contain that standard/law/regime's own text — even if the
-   sources include material from a DIFFERENT, textually-similar-sounding regime (e.g. the
-   provided GDPR's own certification articles, when asked about ISO certification; EU GDPR
-   text, when asked about UK GDPR) — do NOT manufacture obligations by generalizing from that
-   adjacent material as if it answered the question. In that case return an EMPTY
-   \`obligations\` array and use \`gaps\` to say plainly that the specific thing asked about is
-   not among the provided sources, distinguishing it from whatever similar-sounding in-corpus
-   material exists (name it, so the user isn't left with nothing, but don't present it as an
-   answer to what they actually asked). Only produce obligations that directly answer the
-   question asked, never a related-but-different one.
+7. DON'T ANSWER A DIFFERENT QUESTION THAN WAS ASKED — but DO correct a false premise when you
+   have the real source for it. Two different situations, handled differently:
+   (a) REGIME GENUINELY ABSENT: the input's core subject is a SPECIFIC named standard, law, or
+       regime (e.g. "ISO/IEC 42001", "ISO 27001", "UK GDPR", "CCPA", "HIPAA") and NONE of the
+       provided sources are that regime's own text — even if the sources include material from
+       a DIFFERENT, textually-similar-sounding regime (e.g. the provided GDPR's own
+       certification articles, when asked about ISO certification; EU GDPR text, when asked
+       about UK GDPR). Do NOT manufacture obligations by generalizing from that adjacent
+       material as if it answered the question. Return an EMPTY \`obligations\` array and use
+       \`gaps\` to say plainly that the specific thing asked about is not among the provided
+       sources, distinguishing it from whatever similar-sounding in-corpus material exists
+       (name it, so the user isn't left with nothing, but don't present it as an answer to what
+       they actually asked).
+   (b) FALSE PREMISE, BUT THE REAL SOURCE IS PROVIDED: the question assumes something false
+       about a clause or framework, but the provided sources DO include the material that's
+       actually relevant — e.g. it asks what a specific named article says about a topic that
+       article doesn't actually cover, or asks you to cite a provision in framework X that
+       doesn't exist there when the real rule lives in framework Y and Y's text is among your
+       sources. This IS answerable — it is not a gap. Produce an obligation that cites the
+       ACTUAL relevant clause, states ONLY what it actually says (grounded per rule 1), and
+       explicitly corrects the premise in the \`statement\` or \`rationale\` (e.g. "GDPR Article
+       99 concerns the Regulation's entry into force; it does not address AI training data" or
+       "GDPR Article 33(1) — not the EU AI Act — is the source of the 72-hour breach-
+       notification rule"). An honest, cited correction is a more complete answer than an
+       empty gap — use (b), not (a), whenever the sources contain the clause the correction
+       depends on.
 
 For a system_description, produce the obligations that apply to THAT system, each rationale tying
 it to the described attributes. For a direct_question, produce the point(s) that answer the
