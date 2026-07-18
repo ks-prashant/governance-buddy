@@ -35,6 +35,64 @@ re-deriving it from git log or re-reading every phase section.
 
 ### Session log (most recent first)
 
+**2026-07-18 (latest+1) — Phase D eval EXECUTED on $5 budget: 1 real regression found,
+root-caused, and fixed+verified; gate still not green.** Ran the cost-scoped plan from the
+entry below. Both keys confirmed funded via cheap probes (~$0.15). Deployed the Sonnet-5
+config (`2e20bd8`), verified `latest_commit_sha` matched, ran the full 24-item GDPR subset:
+**groundedness 81.6% FAIL, citation accuracy 94.4% PASS, correct-refusal 50.0% FAIL** —
+both worse than the pre-fix baseline (93.3%/83.3%), a real regression, not just the
+Sonnet-vs-Opus swap. Diagnosed every failing item for free from `results.json` (no
+extra spend) plus 2 targeted raw-product probes (no judge calls, ~$0.3) before touching
+any code:
+- **Root cause found (commit `011b1e0`, then `ca4821f`):** the earlier CLR-02 fix
+  (`5a40b3f`) widened `understand.ts`'s `system_description` classification to catch bare
+  compliance questions ("is our app compliant?") — but that widening had a side effect:
+  it also swept up out-of-corpus questions phrased with "our AI"/"our system" possessive
+  language even when they NAME a specific external regime (HIPAA, CCPA, NYC's bias-audit
+  law, LGPD/PIPL, UK GDPR — OOC-01/02/03/05/06). Those got routed into the sufficiency/
+  clarify gate — which only checks system-description completeness, has no notion of
+  corpus coverage — instead of ever reaching `retrieve.ts`'s relevance-floor refusal
+  check. First fix (input_type classification) only flipped OOC-06; OOC-01/02/03/05
+  genuinely describe real system detail too, so the classifier still called them
+  system_description. Second fix decoupled **sufficiency** from input_type: a
+  named-external-regime input is now `sufficient:true` regardless of classification or
+  missing attributes, since more system detail can never make an unlisted regime
+  answerable — only corpus coverage can. **Verified via two small targeted re-runs**
+  (`SUBSET_IDS`, ~$0.15 total): all 5 originally-failing OOC items now correctly refuse.
+- **Diagnosed but NOT fixed this session** (deliberately — see cost reasoning below):
+  - OOC-10 (staleness question) and DL-04 (simple Art. 33 lookup) showed judge-classified
+    "error"/"empty" behavior in the full run, but a free raw-product re-probe of both
+    produced clean, correct answers — most likely **LLM sampling variance** at Sonnet 5
+    `effort:high`, not a deterministic bug. Low confidence any code fix would help;
+    not worth spending on.
+  - ADV-03 (Art. 99 trap) and ADV-12 (EU AI Act/GDPR breach-notification trap) both got
+    "refuse" instead of the expected "answer". Re-examined ADV-12's golden definition:
+    it's actually answerable from **GDPR alone** (cite Art. 33, explain the EU AI Act has
+    no equivalent) — the prior session's assumption that it needs the EU AI Act corpus is
+    probably wrong. More likely a retrieval/subquery-diversity issue: subqueries phrased
+    toward "EU AI Act" terminology don't semantically match GDPR Art. 33 well in a
+    GDPR-only corpus, so confidence stays under `relevanceFloor`. Plausible but
+    **unconfirmed without inspecting `retrievedContext`** (a paid call) — flagged, not
+    fixed blind.
+  - DL-01 missing "accountability (Article 5(2))" in its answer (a completeness nit) and
+    CLR-05 bundling 2 questions instead of 1 (report-metric only, not gating) — both low
+    severity, deprioritized.
+- **Budget spent this session: ~$2.2–2.5 of the $5** (24-item full run ~$1.7 + 2 raw
+  probes ~$0.3 + 2 small SUBSET_IDS re-runs ~$0.1 + negligible haiku probe). **~$2.5–2.8
+  remaining.** Stopped here deliberately rather than spend on a full re-run immediately —
+  ADV-03/ADV-12 are still unresolved and directly drag groundedness (both are "answer"
+  items being graded as refusal text against ground-truth claims), so a full re-run right
+  now would likely still fail groundedness even though correct-refusal would very likely
+  now pass (~12/13 ≈ 92% if OOC-10 stays flaky, else 13/13).
+- **Gate status: still NOT met.** Two real fixes landed and verified at the item level,
+  but the formal 24-item gate has not been re-run in full since the fixes — do not treat
+  Phase D as closed. **Next action:** decide with the user whether to (a) spend on a full
+  24-item re-run now to get a current gate read (likely still FAILs groundedness on
+  ADV-03/ADV-12), (b) spend a small paid probe first to confirm the ADV-03/ADV-12 retrieval
+  hypothesis before deciding on a fix, or (c) stop here for this session and resume later
+  once more budget/clarity is available. Commits this session: `011b1e0`, `ca4821f`
+  (both deployed and verified live via `latest_commit_sha`).
+
 **2026-07-18 (latest) — Cost-scoped Phase D eval plan + TEMPORARY generation-model switch.**
 User funded the Anthropic account with **$5** (payment partially resolved) and asked for a
 rigorously cost-scoped eval plan. Costed the harness from the actual call structure
