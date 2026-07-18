@@ -28,12 +28,55 @@ re-deriving it from git log or re-reading every phase section.
 | A — Workspace setup | ✅ Done | trivial deploy + front end load confirmed |
 | B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
-| D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed — **formal eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 3 root-cause fixes applied + deployed since. |
-| E — Full corpus + cross-framework | 🟡 Steps 1-4 DONE: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). 1 real bug found+fixed+verified (generate.ts gaps coercion). 2 gaps flagged for design (ADV-03/ADV-12, CONF-01-family). Step 5 (full 64-item eval) deferred on Anthropic budget (~$1.7-2.1 left, needs ~$6-12) AND on the CONF sufficiency-gate question | all 5 frameworks pass validate; combined snapshot verified live via real cross-framework queries (EU AI Act + GDPR citing correctly together) |
+| D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed, item-level-verified — **formal 24-item eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 6 root-cause fixes applied + deployed + individually verified since (`011b1e0`..`d116d9a`); no known open item-level issue remains, but the formal gate itself hasn't re-run. |
+| E — Full corpus + cross-framework | 🟡 Steps 1-4 DONE: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified — see §0 latest+5. Step 5 (full 64-item eval) deferred on Anthropic budget, not on known issues | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
 | F — Hero UI | ⬜ Not started | — |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+5) — Both flagged gaps (CONF-01, ADV-03/ADV-12) FIXED and VERIFIED;
+2 more live bugs found in the same session via end-to-end testing.** Discussed both gaps
+with the user first (design-level, no action) before implementing, per the shared root
+cause: both gates keyed on structural proxies ("are 4 attributes present?", "did any
+positive obligation survive?") instead of "is what was actually asked answerable?"
+- **Gap 2 fix (`3638053`)** — reformulated `understand.ts`'s sufficiency rule around BROAD
+  vs NARROW asks instead of a third narrow patch (this is the third time this session a
+  sufficiency edge case needed fixing — CLR-02's bare-compliance-question, the named-
+  external-regime case, now CONF-01's named-tension case). A broad ask (full obligation
+  map) still needs all 4 attributes; a narrow ask (names a specific external regime, or a
+  specific tension/comparison) is always sufficient, since more system detail can't change
+  whether that specific thing is answerable.
+- **Gap 1 fix (`0f4e612`)** — split `generate.ts`'s close-neighbor rule (7) into (a) regime
+  genuinely absent from every source → unchanged empty-obligations behavior, and (b) false
+  premise but the real source IS among the provided sources → now explicitly answerable:
+  cite the actual clause, state only what it says, correct the premise inline.
+- **2 more bugs found live during verification, same session:** (1) `understand.ts`'s
+  `subqueries.min(1)` crashed CLR-02 with a raw ZodError when Haiku correctly emitted zero
+  subqueries on the clarify path (they're never read there) — fixed by dropping the zod
+  constraint (`1aa379e`), same shape as the `gaps` bug from the prior entry. (2) verifying
+  ADV-03 hit a THIRD instance of this bug class — `obligations` itself malformed as a
+  string with `gaps`/`overall_confidence` missing entirely — signal to fix the class, not
+  another field: added a 2-attempt retry loop around the whole tool-call parse in
+  `generate.ts` (`d116d9a`) instead of chasing a fourth field.
+- **All 6 checkpoints verified live post-fix, each redeployed + commit-sha-confirmed:**
+  CONF-01 exact wording → `answer` with 8 correct cross-framework citations (GDPR + EU AI
+  Act + NIST AI RMF). CLR-02 → `clarify`, correctly asking what the system does (both the
+  Gap-2 target AND the subqueries-crash regression, same query). ADV-03 → `answer`,
+  correctly quotes Art. 99's real text (entry into force), explicitly states it doesn't
+  cover training data, even catches the EU AI Act's own differently-numbered Art. 99 as a
+  distinct nuance. ADV-12 → `answer`, cites GDPR Art. 33(1), explicitly corrects the
+  EU-AI-Act-equivalent premise. OOC-04 → still `empty` (ISO certs not fabricated). OOC-06
+  → still `empty` (UK GDPR not fabricated). No regressions found.
+- **Phase D + E status:** every item flagged as an open gap in the two entries below is now
+  fixed and verified at the item level. **The formal 24-item Phase D gate and the full
+  64-item Phase E gate have still NOT been run** since ANY of this session's fixes — six
+  commits deep (`011b1e0` through `d116d9a`) without a full re-run. Budget is the
+  constraint, not remaining known issues — this is genuinely the first point in the
+  session where a full run seems likely to actually pass. **Next action:** decide on full
+  eval spend (step 5) — budget remaining not yet re-tallied this entry (several small
+  verification-only calls since the last tally; mostly cheap clarify/empty items plus a
+  handful of real generations).
 
 **2026-07-18 (latest+4) — Phase E steps 2-4 EXECUTED: combined 5-framework snapshot live,
 1 real bug found+fixed, 1 new gap flagged.** Ran the DB-side execution the entry below left
