@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useObligationStream, type Citation } from "@/hooks/use-obligation-stream";
+import { track } from "@/lib/analytics";
 import { CorpusIndicator } from "@/components/governance/corpus-indicator";
 import { DecisionSupportLine } from "@/components/governance/decision-support-line";
 import { HeroInput } from "@/components/governance/hero-input";
@@ -47,13 +48,29 @@ function Index() {
     reset();
   };
 
+  const handleOpenSource = (citation: Citation) => {
+    track("citation_click", { framework: citation.framework, citation_label: citation.citation_label });
+    setOpenCitation(citation);
+  };
+
   return (
     <main className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-2xl items-center justify-between px-4 pt-8 sm:px-6">
         <span className="text-sm font-semibold tracking-tight text-foreground">
           Grounded Governance
         </span>
-        <CorpusIndicator />
+        <div className="flex items-center gap-4">
+          <Link to="/evaluation" className="text-xs font-medium text-muted-foreground hover:text-primary">
+            Evaluation
+          </Link>
+          <a
+            href="mailto:prashant.dpsrkp@gmail.com"
+            className="text-xs font-medium text-muted-foreground hover:text-primary"
+          >
+            Contact
+          </a>
+          <CorpusIndicator />
+        </div>
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -117,7 +134,7 @@ function Index() {
             {state.status === "result" && state.result && (
               <div className="space-y-6">
                 <DecisionSupportLine corpusAsOf={state.result.corpus_as_of} />
-                <ObligationMap result={state.result} onOpenSource={setOpenCitation} />
+                <ObligationMap result={state.result} onOpenSource={handleOpenSource} />
               </div>
             )}
           </div>

@@ -9,6 +9,7 @@
  * (system design §15) — never a partial fabricated answer.
  */
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { track } from "@/lib/analytics";
 
 export type ApplicabilityLabel = "Direct" | "Inferred" | "Possible";
 export type ImpactLabel = "high" | "medium" | "low";
@@ -118,6 +119,7 @@ export function useObligationStream() {
     abortRef.current = controller;
 
     setState({ ...INITIAL_STATE, status: "loading", stageLabel: "Reading your description…" });
+    const startedAt = performance.now();
 
     try {
       const res = await fetch("/api/generate", {
@@ -134,6 +136,7 @@ export function useObligationStream() {
           status: "error",
           errorMessage: body.error ?? `Request failed (${res.status}).`,
         }));
+        track("error");
         return;
       }
 
@@ -153,6 +156,7 @@ export function useObligationStream() {
           const ev = parseSseFrame(frame);
           if (!ev) continue;
           applyEvent(ev, setState);
+          trackPipelineEvent(ev, startedAt);
         }
       }
     } catch (err) {
@@ -162,10 +166,42 @@ export function useObligationStream() {
         status: "error",
         errorMessage: err instanceof Error ? err.message : String(err),
       }));
+      track("error");
     }
   }, []);
 
   return { state, submit, reset };
+}
+
+/** Fire the anonymous counters PRD §14 asks for. Never includes user text — only
+ *  structured, low-cardinality fields (counts, timings, tier names). */
+function trackPipelineEvent(ev: PipelineEvent, startedAt: number) {
+  switch (ev.type) {
+    case "clarify":
+      track("clarifying_question");
+      break;
+    case "refusal":
+      track("refusal");
+      break;
+    case "empty":
+      track("empty");
+      break;
+    case "result": {
+      const time_to_result_ms = Math.round(performance.now() - startedAt);
+      const tiers = ev.result.tiers;
+      track("map_completed", {
+        time_to_result_ms,
+        applies_count: tiers.applies.length,
+        likely_count: tiers.likely.length,
+        possibly_count: tiers.possibly.length,
+        overall_confidence: ev.result.overall_confidence,
+      });
+      break;
+    }
+    case "error":
+      track("error");
+      break;
+  }
 }
 
 function applyEvent(

@@ -9,12 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as EvaluationRouteImport } from './routes/evaluation'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSourceRouteImport } from './routes/api/source'
 import { Route as ApiRetrieveRouteImport } from './routes/api/retrieve'
 import { Route as ApiGenerateRouteImport } from './routes/api/generate'
+import { Route as ApiEvalResultsRouteImport } from './routes/api/eval-results'
 import { Route as ApiCorpusRouteImport } from './routes/api/corpus'
+import { Route as ApiAnalyticsRouteImport } from './routes/api/analytics'
 
+const EvaluationRoute = EvaluationRouteImport.update({
+  id: '/evaluation',
+  path: '/evaluation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -35,22 +43,38 @@ const ApiGenerateRoute = ApiGenerateRouteImport.update({
   path: '/api/generate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEvalResultsRoute = ApiEvalResultsRouteImport.update({
+  id: '/api/eval-results',
+  path: '/api/eval-results',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCorpusRoute = ApiCorpusRouteImport.update({
   id: '/api/corpus',
   path: '/api/corpus',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAnalyticsRoute = ApiAnalyticsRouteImport.update({
+  id: '/api/analytics',
+  path: '/api/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/evaluation': typeof EvaluationRoute
+  '/api/analytics': typeof ApiAnalyticsRoute
   '/api/corpus': typeof ApiCorpusRoute
+  '/api/eval-results': typeof ApiEvalResultsRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
   '/api/source': typeof ApiSourceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/evaluation': typeof EvaluationRoute
+  '/api/analytics': typeof ApiAnalyticsRoute
   '/api/corpus': typeof ApiCorpusRoute
+  '/api/eval-results': typeof ApiEvalResultsRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
   '/api/source': typeof ApiSourceRoute
@@ -58,7 +82,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/evaluation': typeof EvaluationRoute
+  '/api/analytics': typeof ApiAnalyticsRoute
   '/api/corpus': typeof ApiCorpusRoute
+  '/api/eval-results': typeof ApiEvalResultsRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/retrieve': typeof ApiRetrieveRoute
   '/api/source': typeof ApiSourceRoute
@@ -67,16 +94,30 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/evaluation'
+    | '/api/analytics'
     | '/api/corpus'
+    | '/api/eval-results'
     | '/api/generate'
     | '/api/retrieve'
     | '/api/source'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/corpus' | '/api/generate' | '/api/retrieve' | '/api/source'
+  to:
+    | '/'
+    | '/evaluation'
+    | '/api/analytics'
+    | '/api/corpus'
+    | '/api/eval-results'
+    | '/api/generate'
+    | '/api/retrieve'
+    | '/api/source'
   id:
     | '__root__'
     | '/'
+    | '/evaluation'
+    | '/api/analytics'
     | '/api/corpus'
+    | '/api/eval-results'
     | '/api/generate'
     | '/api/retrieve'
     | '/api/source'
@@ -84,7 +125,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EvaluationRoute: typeof EvaluationRoute
+  ApiAnalyticsRoute: typeof ApiAnalyticsRoute
   ApiCorpusRoute: typeof ApiCorpusRoute
+  ApiEvalResultsRoute: typeof ApiEvalResultsRoute
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiRetrieveRoute: typeof ApiRetrieveRoute
   ApiSourceRoute: typeof ApiSourceRoute
@@ -92,6 +136,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/evaluation': {
+      id: '/evaluation'
+      path: '/evaluation'
+      fullPath: '/evaluation'
+      preLoaderRoute: typeof EvaluationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -120,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/eval-results': {
+      id: '/api/eval-results'
+      path: '/api/eval-results'
+      fullPath: '/api/eval-results'
+      preLoaderRoute: typeof ApiEvalResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/corpus': {
       id: '/api/corpus'
       path: '/api/corpus'
@@ -127,12 +185,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCorpusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/analytics': {
+      id: '/api/analytics'
+      path: '/api/analytics'
+      fullPath: '/api/analytics'
+      preLoaderRoute: typeof ApiAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EvaluationRoute: EvaluationRoute,
+  ApiAnalyticsRoute: ApiAnalyticsRoute,
   ApiCorpusRoute: ApiCorpusRoute,
+  ApiEvalResultsRoute: ApiEvalResultsRoute,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiRetrieveRoute: ApiRetrieveRoute,
   ApiSourceRoute: ApiSourceRoute,

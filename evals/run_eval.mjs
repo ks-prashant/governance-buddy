@@ -27,6 +27,11 @@ const TARGETS = { groundedness: 0.95, citationAccuracy: 0.90, correctRefusal: 0.
 const PRODUCT_URL = process.env.PRODUCT_URL || "https://pact-wise-guide.lovable.app";
 const JUDGE_MODEL = process.env.JUDGE_MODEL || "claude-sonnet-5";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+// Optional: if set, the run's aggregate metrics are POSTed to /api/eval-results so the
+// in-product evaluation page (PRD §8.8) shows this run. Unset locally by default —
+// a local/dev run producing results.json + report.md doesn't require it; only a run
+// meant to update the public page needs the write secret (build plan §H).
+const EVAL_WRITE_SECRET = process.env.EVAL_WRITE_SECRET;
 
 // ---------------------------------------------------------------------------
 // ADAPTERS — wired to the deployed product endpoint and the judge model.
@@ -120,6 +125,38 @@ function retrievalHit(item, response) {
     const tokens = anchorCore.split(/\s+/).filter((t) => t.length > 1).slice(0, 3);
     return ctx.includes(String(c.framework).toLowerCase()) && tokens.some((t) => ctx.includes(t));
   });
+}
+
+// Publish the aggregate metrics to the deployed /api/eval-results endpoint, which
+// writes eval_results rows the in-product evaluation page reads (PRD §8.8, build plan
+// §H). Metric names match the DB column comment's convention in supabase/migrations/
+// 0001_schema.sql. Gating metrics carry their PRD §11.2 target; reported-only metrics
+// (retrieval hit rate, clarification precision, answer correctness) and the two
+// watch-counts (verdict leaks, false answers on out-of-corpus) are published with a
+// target of 0 or null so the page can still show them without implying a gate.
+async function writeEvalResults(metrics) {
+  const rows = [
+    { metric: "groundedness", target: TARGETS.groundedness, value: metrics.groundedness },
+    { metric: "citation_accuracy", target: TARGETS.citationAccuracy, value: metrics.citationAccuracy },
+    { metric: "correct_refusal", target: TARGETS.correctRefusal, value: metrics.correctRefusal },
+    { metric: "retrieval_hit_rate", target: null, value: metrics.retrievalHitRate },
+    { metric: "clarification_precision", target: null, value: metrics.clarificationPrecision },
+    { metric: "answer_correctness", target: null, value: metrics.answerCorrectness },
+    { metric: "verdict_leaks", target: 0, value: metrics.verdictLeaks },
+    { metric: "false_answers_on_ooc", target: 0, value: metrics.falseAnswersOnOOC },
+  ];
+
+  const res = await fetch(`${PRODUCT_URL}/api/eval-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${EVAL_WRITE_SECRET}` },
+    body: JSON.stringify({
+      run_date: new Date(metrics.run_date).toISOString(),
+      judge_prompt_version: metrics.judge_prompt_version,
+      metrics: rows,
+    }),
+  });
+  if (!res.ok) throw new Error(`eval-results ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  console.error(`Published ${rows.length} metric rows to the in-product evaluation page.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +278,16 @@ Judge prompt version: ${JUDGE_PROMPT_VERSION} · Items: ${results.length}
 ${results.filter((r) => r.failures.length).map((r) => `- ${r.id} (${r.category}): ${r.failures.join(", ")}`).join("\n") || "None."}
 `;
   writeFileSync("report.md", report);
+
+  if (EVAL_WRITE_SECRET) {
+    await writeEvalResults(metrics).catch((e) => {
+      // Never let a publish failure hide the eval result itself — it's already
+      // written to results.json/report.md above; just surface the write problem.
+      console.error("Failed to publish eval_results:", e.message || e);
+    });
+  } else {
+    console.error("EVAL_WRITE_SECRET not set — skipping publish to the in-product eval page.");
+  }
 
   const failedGate =
     groundedness < TARGETS.groundedness ||

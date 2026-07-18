@@ -1,0 +1,50 @@
+# Grounded Governance — golden-set evaluation gate (build plan §H, PRD §11.3).
+#
+# Manual trigger only (workflow_dispatch), deliberately — the golden set includes real
+# Anthropic generation + judge calls (~$6-12 for the full 64-item set), and there is a
+# standing decision (docs/BUILD_PLAN.md §0/§D) to defer the first full run until the
+# whole app is built, not spend on every push. Once that first comprehensive run is
+# done, this can be switched to `on: push` against the paths that actually change
+# retrieval/generation/corpus behavior — see build plan §J's cadence note.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY  — used by the harness's judge calls only (a separate key/budget
+#                         from whatever the deployed product itself uses).
+#   EVAL_WRITE_SECRET  — matches the same-named secret set in Lovable Cloud; without it
+#                         the run still produces results.json/report.md as artifacts,
+#                         it just won't publish to the in-product evaluation page.
+name: Evaluation gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      subset_ids:
+        description: "Optional comma-separated golden-set ids to run (e.g. DL-01,DL-02). Leave blank for the full set."
+        required: false
+        default: ""
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run the golden-set harness
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_WRITE_SECRET: ${{ secrets.EVAL_WRITE_SECRET }}
+          SUBSET_IDS: ${{ github.event.inputs.subset_ids }}
+        run: bun evals/run_eval.mjs evals/golden_set.jsonl
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: |
+            results.json
+            report.md
