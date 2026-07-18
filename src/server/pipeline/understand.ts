@@ -58,16 +58,22 @@ const TOOL: LlmTool = {
         type: "string",
         enum: ["system_description", "direct_question"],
         description:
-          "system_description: describes an AI system/feature being built. " +
-          "direct_question: asks a standalone question about a framework/obligation.",
+          "system_description: describes an AI system/feature being built, INCLUDING a " +
+          "bare compliance question about the user's own unnamed system (e.g. 'is our app " +
+          "compliant?') — these presuppose a system but describe none of its attributes. " +
+          "direct_question: a standalone question about a framework/article/topic that does " +
+          "NOT presuppose an undescribed system of the user's own (e.g. 'what does GDPR " +
+          "Article 22 say?').",
       },
       sufficient: {
         type: "boolean",
         description:
-          "For a system_description: true only if the text gives enough signal on " +
-          "(1) what the system does, (2) what data it uses, (3) whether it makes or " +
-          "informs decisions about people, and (4) where it is deployed/whose data. " +
-          "Always true for a direct_question.",
+          "For a system_description (including the bare-compliance-question case above): " +
+          "true only if the text gives enough signal on (1) what the system does, (2) what " +
+          "data it uses, (3) whether it makes or informs decisions about people, and (4) " +
+          "where it is deployed/whose data. A bare 'is our app compliant?' with zero system " +
+          "detail is missing all four and must be sufficient:false. Always true for a " +
+          "direct_question.",
       },
       missing_attribute: {
         type: "string",
