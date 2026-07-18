@@ -29,11 +29,59 @@ re-deriving it from git log or re-reading every phase section.
 | B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
 | D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed — **formal eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 3 root-cause fixes applied + deployed since. |
-| E — Full corpus + cross-framework | ⬜ Not started | — |
+| E — Full corpus + cross-framework | 🟡 Parsers done (4/4) + validate gate green on all 5; embed/load/promote + 5-dim decomposition + conflicts + full eval still to do (embed/load blocked on payment) | all 5 frameworks pass validate: golden anchors 22/22 GDPR · 27/27 EU AI Act · 9/9 CSF · 6/6 SSDF · 9/9 AI RMF |
 | F — Hero UI | ⬜ Not started | — |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (later) — Phase E step 1: the other four parsers (deterministic structuring).**
+With evals parked (Anthropic payment still unresolved), moved forward on the part of Phase E
+that needs no API credits: the framework-specific parsers (§E step 1) and the deterministic
+validate gate (§E step 2's structural half). Built all four remaining parsers to the same
+`ParsedFramework` interface as `gdpr.ts`, each producing a committed, reviewable
+`corpus-build/<fw>.json` with NO embeddings:
+- `eu-ai-act.ts` — Chapter→Section→Article→paragraph(→inline points) + Recitals + Annexes.
+  **113/113 articles, 180/180 recitals, 13 annexes** (306 parents, 784 children). Reuses the
+  GDPR paragraph/point logic; Act-specific surface differences handled (page furniture
+  `N/144`/`ELI:`/`OJ L,`; inline chapter titles; bare `SECTION n` + next-line title; article
+  titles on their own line; inline-body articles like 64/113 where the body sits on the
+  heading line). Annex III(N) areas parsed so `Annex III(5)(b)` resolves. Known cosmetic:
+  12 amendment articles (102–113, non-golden) keep a boilerplate OJ self-citation — real
+  text, not furniture, left intact.
+- `nist-csf.ts` — Function→Category(parent)→Subcategory(child). **22 categories, 106
+  subcategories** (matches CSF 2.0 exactly). Bullet/`XX.YY`-id tokenizer with page-furniture
+  stripping; parens disambiguate category ids `(PR.DS)` from subcategory ids `PR.DS-01`.
+- `nist-ssdf.ts` — Practice group→Practice(parent)→Task(child). **19 practices, 42 tasks**
+  (matches SP 800-218 v1.1). The messy one, as the plan warned: pdftotext flattens the
+  3-column table and batches each page's tasks after all its headers, so tasks are filed
+  under their practice by **id prefix** (`PW.4.1`→`PW.4`), never by position; "Example N:"
+  is a cut marker (some pages omit the "Notional Implementation Examples" header); deprecated
+  "Moved to …" tasks dropped.
+- `nist-ai-rmf.ts` — the 7 trustworthiness characteristics (§3.1–3.7, the units the golden
+  set cites, with en-dash normalized so `Section 3.7 (Fair - with Harmful Bias Managed)`
+  matches) + the Core (GOVERN/MAP/MEASURE/MANAGE functions as parents, **72 subcategories**
+  filed by prefix, same as SSDF). 11 parents, 79 children.
+Enhanced `ingestion/validate.ts` from GDPR-only anchor logic to a framework-aware
+`anchorResolves()` (exact → Article/Annex point+range reduction → prefix → hierarchy grain:
+`GOVERN (GV)`, `Chapter V (…)`, `X function`, `PO (…)` group codes, `A / B` slash-lists →
+whole-framework citations like `… Core`/`(voluntary framework)`/`practice groups`). **All 5
+frameworks now pass validate** (GDPR still 22/22 — no regression). `bunx tsc --noEmit` clean;
+each parser also runs clean under bun.
+**Two load-time issues flagged for when embed/load is unparked (parser output is fine; these
+are downstream):** (1) the combined 5-framework corpus has **435 cross-framework duplicate
+child `citation_label`s** (GDPR `Art. 5(1)` vs EU AI Act `Art. 5(1)`), which violates
+`chunks_citation_label_unique_idx (snapshot_id, citation_label)` — the fix is to make that
+index `(snapshot_id, framework_id, citation_label)` (a one-line migration), since
+`framework_id` already disambiguates and display stays framework-native. (2) `ingestion/run.ts`
++ `load.ts` promote **one snapshot per framework** (each archives the previous), but Phase E
+needs all five in ONE snapshot — needs a combined-snapshot load path. Total corpus so far:
+**630 parents, 1,573 children** across five frameworks.
+**Not committed as of writing this entry** — commit immediately after. **Next action:** commit
++ push + sync; the remaining Phase E work (embed/load/promote a single 5-framework snapshot,
+turn on the DR-4 five-dimension decomposition, seed `conflicts`, and the full 64-item eval)
+stays parked on Anthropic/Voyage credits — resume it once payment is resolved (verify with a
+direct API test first, per the standing note).
 
 **2026-07-18 — Phase D fixes verified + full codebase review.** Anthropic credits were
 blocked most of this session (both the local eval-judge key and the deployed product's

@@ -38,21 +38,68 @@ interface ValidationReport {
   anchorTotal: number;
 }
 
-/** Normalize a golden anchor to candidate chunk anchors. Point-level anchors
- *  ("Article 35(3)(a)") resolve to their paragraph chunk ("Article 35(3)"); ranges
- *  ("Article 5(1)-(2)", "Article 5(1)(c)-(d)") resolve via their first paragraph or
- *  the parent article. The article itself is always a fallback candidate, so the gate
- *  asserts "the cited unit exists in the corpus" (paragraph fidelity is checked
- *  separately by count). */
-function candidateAnchors(anchor: string): string[] {
-  const cands = new Set<string>([anchor]);
-  const art = /^Article (\d+)/.exec(anchor);
-  if (art) {
-    cands.add(`Article ${art[1]}`); // parent-article fallback
-    const para = /^Article \d+\((\d+)\)/.exec(anchor);
-    if (para) cands.add(`Article ${art[1]}(${para[1]})`);
+interface ResolveSets {
+  has: (a: string) => boolean; // a is a child or parent anchor
+  hierTokens: Set<string>; // every hierarchy_path element across parents + children
+  nonEmpty: boolean; // the framework parsed at least one unit
+}
+
+/** Does a golden anchor resolve to something in the corpus? The golden set cites units at
+ *  several grains — a precise clause, a paragraph point, a whole article/annex, a function
+ *  or practice group, or (for the NIST frameworks) the framework/Core as a whole. This
+ *  asserts "the cited unit exists in the corpus" across all of those grains; paragraph-
+ *  count fidelity is checked separately. Strategies, most precise first:
+ *   1. exact child/parent anchor;
+ *   2. Article/Annex point + range reduction ("Art 35(3)(a)" → "Art 35(3)" → "Art 35");
+ *   3. prefix ("Section 3" → "Section 3.1 (Valid and Reliable)");
+ *   4. hierarchy grain — an exact hierarchy token ("GOVERN (GV)"), a Chapter, a "X function"
+ *      or a parenthesized group code ("PO (…)" → a token containing "(PO)"), or a slash-list
+ *      of any of these ("RESPOND (RS) / RECOVER (RC)");
+ *   5. whole-framework citations ("… Core", "(voluntary framework)", "practice groups")
+ *      resolve when the framework parsed successfully. */
+function anchorResolves(anchor: string, s: ResolveSets): boolean {
+  if (s.has(anchor)) return true;
+
+  // 2. Article / Annex point + range reduction.
+  for (const kind of ["Article", "Annex"] as const) {
+    const unit = kind === "Article" ? /^Article (\d+)/ : /^Annex ([IVXL]+)/;
+    const m = unit.exec(anchor);
+    if (m) {
+      if (s.has(`${kind} ${m[1]}`)) return true;
+      const para = new RegExp(`^${kind} ${kind === "Article" ? "\\d+" : "[IVXL]+"}\\((\\d+)\\)`).exec(anchor);
+      if (para && s.has(`${kind} ${m[1]}(${para[1]})`)) return true;
+    }
   }
-  return [...cands];
+
+  // 3. Prefix (a coarser section that heads a finer one), guarded by a separator so
+  //    "Article 5" cannot spuriously match "Article 50".
+  for (const t of s.hierTokens) {
+    if (t === anchor) return true;
+  }
+  const startsWithSep = (a: string) =>
+    a.startsWith(anchor) && (a.length === anchor.length || /[ .(]/.test(a[anchor.length]));
+  // (child/parent anchors are folded into hierTokens by the caller, see below)
+
+  // 4. Hierarchy-grain resolution.
+  const fn = /^([A-Z][A-Za-z]+) function$/.exec(anchor);
+  if (fn && s.hierTokens.has(fn[1])) return true;
+
+  const ch = /^Chapter ([IVXL]+)\b/.exec(anchor);
+  if (ch && [...s.hierTokens].some((t) => t.startsWith(`Chapter ${ch[1]} `))) return true;
+
+  const code = /^([A-Z]{2,4}) \(/.exec(anchor); // "PO (Prepare the Organization)"
+  if (code && [...s.hierTokens].some((t) => t.includes(`(${code[1]})`))) return true;
+
+  if (anchor.includes(" / ")) {
+    if (anchor.split(" / ").every((part) => anchorResolves(part.trim(), s))) return true;
+  }
+
+  for (const a of s.hierTokens) if (startsWithSep(a)) return true;
+
+  // 5. Whole-framework citations.
+  if (s.nonEmpty && /\bCore\b|\(voluntary framework\)|practice groups\b/.test(anchor)) return true;
+
+  return false;
 }
 
 export function validateFramework(fw: ParsedFramework, goldenLines: string[]): ValidationReport {
@@ -105,13 +152,24 @@ export function validateFramework(fw: ParsedFramework, goldenLines: string[]): V
     }
   }
 
+  // Build the resolution sets. hierTokens folds in every hierarchy_path element plus the
+  // child/parent anchors themselves, so the prefix + hierarchy-grain strategies see the
+  // full vocabulary of the corpus.
+  const hierTokens = new Set<string>([...childAnchors, ...articleAnchors]);
+  for (const p of fw.parents) {
+    for (const t of p.hierarchy_path) hierTokens.add(t);
+    for (const c of p.children) for (const t of c.hierarchy_path) hierTokens.add(t);
+  }
+  const sets: ResolveSets = {
+    has: (a) => childAnchors.has(a) || articleAnchors.has(a),
+    hierTokens,
+    nonEmpty: children.length > 0,
+  };
+
   let hits = 0;
   const misses: string[] = [];
   for (const anchor of expected) {
-    const resolved = candidateAnchors(anchor).some(
-      (a) => childAnchors.has(a) || articleAnchors.has(a),
-    );
-    if (resolved) hits++;
+    if (anchorResolves(anchor, sets)) hits++;
     else misses.push(anchor);
   }
   if (misses.length) {

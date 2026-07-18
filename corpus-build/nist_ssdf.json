@@ -1,0 +1,719 @@
+{
+  "framework_id": "nist_ssdf",
+  "framework_name": "NIST SSDF",
+  "version_label": "NIST SP 800-218 — Secure Software Development Framework (SSDF) Version 1.1",
+  "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+  "source_file": "corpus/nist-ssdf.pdf",
+  "parsed_at": "2026-07-18T06:33:25.603Z",
+  "parents": [
+    {
+      "citation_label": "PO.1",
+      "anchor": "PO.1",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Prepare the Organization (PO)",
+        "Define Security Requirements for Software Development (PO.1)"
+      ],
+      "text": "Define Security Requirements for Software Development (PO.1): Ensure that security requirements for software development are known at all times so that they can be taken into account throughout the SDLC and duplication of effort can be minimized because the requirements information can be collected once and shared. This includes requirements from internal sources (e.g., the organization’s policies, business objectives, and risk management strategy) and external sources (e.g., applicable laws and regulations).\n\nPO.1.1: Identify and document all security requirements for the organization’s software development infrastructures and processes, and maintain the requirements over time.\nPO.1.2: Identify and document all security requirements for organization-developed software to meet, and maintain the requirements over time.\nPO.1.3: Communicate requirements to all third parties who will provide commercial software components to the organization for reuse by the organization’s own software. [Formerly PW.3.1]",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PO.1.1",
+          "anchor": "PO.1.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Define Security Requirements for Software Development (PO.1)",
+            "PO.1.1"
+          ],
+          "text": "PO.1.1: Identify and document all security requirements for the organization’s software development infrastructures and processes, and maintain the requirements over time."
+        },
+        {
+          "citation_label": "PO.1.2",
+          "anchor": "PO.1.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Define Security Requirements for Software Development (PO.1)",
+            "PO.1.2"
+          ],
+          "text": "PO.1.2: Identify and document all security requirements for organization-developed software to meet, and maintain the requirements over time."
+        },
+        {
+          "citation_label": "PO.1.3",
+          "anchor": "PO.1.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Define Security Requirements for Software Development (PO.1)",
+            "PO.1.3"
+          ],
+          "text": "PO.1.3: Communicate requirements to all third parties who will provide commercial software components to the organization for reuse by the organization’s own software. [Formerly PW.3.1]"
+        }
+      ]
+    },
+    {
+      "citation_label": "PO.2",
+      "anchor": "PO.2",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Prepare the Organization (PO)",
+        "SR3-A Implement Roles and Responsibilities (PO.2)"
+      ],
+      "text": "SR3-A Implement Roles and Responsibilities (PO.2): Ensure that everyone inside and outside of the organization involved in the SDLC is prepared to perform their SDLC-related roles and responsibilities throughout the SDLC.\n\nPO.2.1: Create new roles and alter responsibilities for existing roles as needed to encompass all parts of the SDLC. Periodically review and maintain the defined roles and responsibilities, updating them as needed.\nPO.2.2: Provide role-based training for all personnel with responsibilities that contribute to secure development. Periodically review personnel proficiency and role-based training, and update the training as needed.\nPO.2.3: Obtain upper management or authorizing official commitment to secure development, and convey that commitment to all with developmentrelated roles and responsibilities.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PO.2.1",
+          "anchor": "PO.2.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "SR3-A Implement Roles and Responsibilities (PO.2)",
+            "PO.2.1"
+          ],
+          "text": "PO.2.1: Create new roles and alter responsibilities for existing roles as needed to encompass all parts of the SDLC. Periodically review and maintain the defined roles and responsibilities, updating them as needed."
+        },
+        {
+          "citation_label": "PO.2.2",
+          "anchor": "PO.2.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "SR3-A Implement Roles and Responsibilities (PO.2)",
+            "PO.2.2"
+          ],
+          "text": "PO.2.2: Provide role-based training for all personnel with responsibilities that contribute to secure development. Periodically review personnel proficiency and role-based training, and update the training as needed."
+        },
+        {
+          "citation_label": "PO.2.3",
+          "anchor": "PO.2.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "SR3-A Implement Roles and Responsibilities (PO.2)",
+            "PO.2.3"
+          ],
+          "text": "PO.2.3: Obtain upper management or authorizing official commitment to secure development, and convey that commitment to all with developmentrelated roles and responsibilities."
+        }
+      ]
+    },
+    {
+      "citation_label": "PO.3",
+      "anchor": "PO.3",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Prepare the Organization (PO)",
+        "Implement Supporting Toolchains (PO.3)"
+      ],
+      "text": "Implement Supporting Toolchains (PO.3): Use automation to reduce human effort and improve the accuracy, reproducibility, usability, and comprehensiveness of security practices throughout the SDLC, as well as provide a way to document and demonstrate the use of these practices. Toolchains and tools may be used at different levels of the organization, such as organization-wide or project-specific, and may address a particular part of the SDLC, like a build pipeline.\n\nPO.3.1: Specify which tools or tool types must or should be included in each toolchain to mitigate identified risks, as well as how the toolchain components are to be integrated with each other.\nPO.3.2: Follow recommended security practices to deploy, operate, and maintain tools and toolchains.\nPO.3.3: Configure tools to generate artifacts6 of their support of secure software development practices as defined by the organization.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PO.3.1",
+          "anchor": "PO.3.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Implement Supporting Toolchains (PO.3)",
+            "PO.3.1"
+          ],
+          "text": "PO.3.1: Specify which tools or tool types must or should be included in each toolchain to mitigate identified risks, as well as how the toolchain components are to be integrated with each other."
+        },
+        {
+          "citation_label": "PO.3.2",
+          "anchor": "PO.3.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Implement Supporting Toolchains (PO.3)",
+            "PO.3.2"
+          ],
+          "text": "PO.3.2: Follow recommended security practices to deploy, operate, and maintain tools and toolchains."
+        },
+        {
+          "citation_label": "PO.3.3",
+          "anchor": "PO.3.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Implement Supporting Toolchains (PO.3)",
+            "PO.3.3"
+          ],
+          "text": "PO.3.3: Configure tools to generate artifacts6 of their support of secure software development practices as defined by the organization."
+        }
+      ]
+    },
+    {
+      "citation_label": "PO.4",
+      "anchor": "PO.4",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Prepare the Organization (PO)",
+        "Define and Use Criteria for Software Security Checks (PO.4)"
+      ],
+      "text": "Define and Use Criteria for Software Security Checks (PO.4): Help ensure that the software resulting from the SDLC meets the organization’s expectations by defining and using criteria for checking the software’s security during development.\n\nPO.4.1: Define criteria for software security checks and track throughout the SDLC.\nPO.4.2: Implement processes, mechanisms, etc. to gather and safeguard the necessary information in support of the criteria. Implement and Maintain Secure Environments for Software Development (PO.5): Ensure that all components of the environments for software development are strongly protected from internal and external threats to prevent compromises of the environments or the software being developed or maintained within them. Examples of environments for software development include development, build, test, and distribution environments.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PO.4.1",
+          "anchor": "PO.4.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Define and Use Criteria for Software Security Checks (PO.4)",
+            "PO.4.1"
+          ],
+          "text": "PO.4.1: Define criteria for software security checks and track throughout the SDLC."
+        },
+        {
+          "citation_label": "PO.4.2",
+          "anchor": "PO.4.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Define and Use Criteria for Software Security Checks (PO.4)",
+            "PO.4.2"
+          ],
+          "text": "PO.4.2: Implement processes, mechanisms, etc. to gather and safeguard the necessary information in support of the criteria. Implement and Maintain Secure Environments for Software Development (PO.5): Ensure that all components of the environments for software development are strongly protected from internal and external threats to prevent compromises of the environments or the software being developed or maintained within them. Examples of environments for software development include development, build, test, and distribution environments."
+        }
+      ]
+    },
+    {
+      "citation_label": "PO.5",
+      "anchor": "PO.5",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Prepare the Organization (PO)",
+        "Implement and Maintain Secure Environments for Software Development (PO.5)"
+      ],
+      "text": "Implement and Maintain Secure Environments for Software Development (PO.5): Ensure that all components of the environments for software development are strongly protected from internal and external threats to prevent compromises of the environments or the software being developed or maintained within them. Examples of environments for software development include development, build, test, and distribution environments.\n\nPO.5.1: Separate and protect each environment involved in software development. cannot generate.\nPO.5.2: Secure and harden development endpoints (i.e., endpoints for software designers, developers, testers, builders, etc.) to perform development-related tasks using a risk-based approach. Protect Software (PS) Protect All Forms of Code from Unauthorized Access and Tampering (PS.1): Help prevent unauthorized changes to code, both inadvertent and intentional, which could circumvent or negate the intended security characteristics of the software. For code that is not intended to be publicly accessible, this helps prevent theft of the software and may make it more difficult or time-consuming for attackers to find vulnerabilities in the software.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PO.5.1",
+          "anchor": "PO.5.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Implement and Maintain Secure Environments for Software Development (PO.5)",
+            "PO.5.1"
+          ],
+          "text": "PO.5.1: Separate and protect each environment involved in software development. cannot generate."
+        },
+        {
+          "citation_label": "PO.5.2",
+          "anchor": "PO.5.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Prepare the Organization (PO)",
+            "Implement and Maintain Secure Environments for Software Development (PO.5)",
+            "PO.5.2"
+          ],
+          "text": "PO.5.2: Secure and harden development endpoints (i.e., endpoints for software designers, developers, testers, builders, etc.) to perform development-related tasks using a risk-based approach. Protect Software (PS) Protect All Forms of Code from Unauthorized Access and Tampering (PS.1): Help prevent unauthorized changes to code, both inadvertent and intentional, which could circumvent or negate the intended security characteristics of the software. For code that is not intended to be publicly accessible, this helps prevent theft of the software and may make it more difficult or time-consuming for attackers to find vulnerabilities in the software."
+        }
+      ]
+    },
+    {
+      "citation_label": "PS.1",
+      "anchor": "PS.1",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Protect the Software (PS)",
+        "Protect All Forms of Code from Unauthorized Access and Tampering (PS.1)"
+      ],
+      "text": "Protect All Forms of Code from Unauthorized Access and Tampering (PS.1): Help prevent unauthorized changes to code, both inadvertent and intentional, which could circumvent or negate the intended security characteristics of the software. For code that is not intended to be publicly accessible, this helps prevent theft of the software and may make it more difficult or time-consuming for attackers to find vulnerabilities in the software.\n\nPS.1.1: Store all forms of code – including source code, executable code, and configuration-as-code – based on the principle of least privilege so that only authorized personnel, tools, services, etc. have access.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PS.1.1",
+          "anchor": "PS.1.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Protect the Software (PS)",
+            "Protect All Forms of Code from Unauthorized Access and Tampering (PS.1)",
+            "PS.1.1"
+          ],
+          "text": "PS.1.1: Store all forms of code – including source code, executable code, and configuration-as-code – based on the principle of least privilege so that only authorized personnel, tools, services, etc. have access."
+        }
+      ]
+    },
+    {
+      "citation_label": "PS.2",
+      "anchor": "PS.2",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Protect the Software (PS)",
+        "Practices Provide a Mechanism for Verifying Software Release Integrity (PS.2)"
+      ],
+      "text": "Practices Provide a Mechanism for Verifying Software Release Integrity (PS.2): Help software acquirers ensure that the software they acquire is legitimate and has not been tampered with.\n\nPS.2.1: Make software integrity verification information available to software acquirers.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PS.2.1",
+          "anchor": "PS.2.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Protect the Software (PS)",
+            "Practices Provide a Mechanism for Verifying Software Release Integrity (PS.2)",
+            "PS.2.1"
+          ],
+          "text": "PS.2.1: Make software integrity verification information available to software acquirers."
+        }
+      ]
+    },
+    {
+      "citation_label": "PS.3",
+      "anchor": "PS.3",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Protect the Software (PS)",
+        "Archive and Protect Each Software Release (PS.3)"
+      ],
+      "text": "Archive and Protect Each Software Release (PS.3): Preserve software releases in order to help identify, analyze, and eliminate vulnerabilities discovered in the software after release.\n\nPS.3.1: Securely archive the necessary files and supporting data (e.g., integrity verification information, provenance data) to be retained for each software release.\nPS.3.2: Collect, safeguard, maintain, and share provenance data for all components of each software release (e.g., in a software bill of materials [SBOM]).",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PS.3.1",
+          "anchor": "PS.3.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Protect the Software (PS)",
+            "Archive and Protect Each Software Release (PS.3)",
+            "PS.3.1"
+          ],
+          "text": "PS.3.1: Securely archive the necessary files and supporting data (e.g., integrity verification information, provenance data) to be retained for each software release."
+        },
+        {
+          "citation_label": "PS.3.2",
+          "anchor": "PS.3.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Protect the Software (PS)",
+            "Archive and Protect Each Software Release (PS.3)",
+            "PS.3.2"
+          ],
+          "text": "PS.3.2: Collect, safeguard, maintain, and share provenance data for all components of each software release (e.g., in a software bill of materials [SBOM])."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.1",
+      "anchor": "PW.1",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1)"
+      ],
+      "text": "Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1): Identify and evaluate the security requirements for the software; determine what security risks the software is likely to face during operation and how the software’s design and architecture should mitigate those risks; and justify any cases where risk-based analysis indicates that security requirements should be relaxed or waived. Addressing security requirements and risks during software design (secure by design) is key for improving software security and also helps improve development efficiency.\n\nPW.1.1: Use forms of risk modeling – such as threat modeling, attack modeling, or attack surface mapping – to help assess the security risk for the software.\nPW.1.2: Track and maintain the software’s security requirements, risks, and design decisions.\nPW.1.3: Where appropriate, build in support for using standardized security features and services (e.g., enabling software to integrate with existing log management, identity management, access control, and vulnerability management systems) instead of creating proprietary implementations of security features and services. [Formerly PW.4.3]",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.1.1",
+          "anchor": "PW.1.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1)",
+            "PW.1.1"
+          ],
+          "text": "PW.1.1: Use forms of risk modeling – such as threat modeling, attack modeling, or attack surface mapping – to help assess the security risk for the software."
+        },
+        {
+          "citation_label": "PW.1.2",
+          "anchor": "PW.1.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1)",
+            "PW.1.2"
+          ],
+          "text": "PW.1.2: Track and maintain the software’s security requirements, risks, and design decisions."
+        },
+        {
+          "citation_label": "PW.1.3",
+          "anchor": "PW.1.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1)",
+            "PW.1.3"
+          ],
+          "text": "PW.1.3: Where appropriate, build in support for using standardized security features and services (e.g., enabling software to integrate with existing log management, identity management, access control, and vulnerability management systems) instead of creating proprietary implementations of security features and services. [Formerly PW.4.3]"
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.2",
+      "anchor": "PW.2",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Establish Log Requirements and Audit Practices Practices Review the Software Design to Verify Compliance with Security Requirements and Risk Information (PW.2)"
+      ],
+      "text": "Establish Log Requirements and Audit Practices Practices Review the Software Design to Verify Compliance with Security Requirements and Risk Information (PW.2): Help ensure that the software will meet the security requirements and satisfactorily address the identified risk information.\n\nPW.2.1: Have 1) a qualified person (or people) who were not involved with the design and/or 2) automated processes instantiated in the toolchain review the software design to confirm and enforce that it meets all of the security requirements and satisfactorily addresses the identified risk information.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.2.1",
+          "anchor": "PW.2.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Establish Log Requirements and Audit Practices Practices Review the Software Design to Verify Compliance with Security Requirements and Risk Information (PW.2)",
+            "PW.2.1"
+          ],
+          "text": "PW.2.1: Have 1) a qualified person (or people) who were not involved with the design and/or 2) automated processes instantiated in the toolchain review the software design to confirm and enforce that it meets all of the security requirements and satisfactorily addresses the identified risk information."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.4",
+      "anchor": "PW.4",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4)"
+      ],
+      "text": "Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4): Lower the costs of software development, expedite software development, and decrease the likelihood of introducing additional security vulnerabilities into the software by reusing software modules and services that have already had their security posture checked. This is particularly important for software that implements security functionality, such as cryptographic modules and protocols.\n\nPW.4.1: Acquire and maintain well-secured software components (e.g., software libraries, modules, middleware, frameworks) from commercial, opensource, and other third-party developers for use by the organization’s software.\nPW.4.2: Create and maintain well-secured software components in-house following SDLC processes to meet common internal software development needs that cannot be better met by third-party software components.\nPW.4.4: Verify that acquired commercial, open-source, and all other third-party software components comply with the requirements, as defined by the organization, throughout their life cycles.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.4.1",
+          "anchor": "PW.4.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4)",
+            "PW.4.1"
+          ],
+          "text": "PW.4.1: Acquire and maintain well-secured software components (e.g., software libraries, modules, middleware, frameworks) from commercial, opensource, and other third-party developers for use by the organization’s software."
+        },
+        {
+          "citation_label": "PW.4.2",
+          "anchor": "PW.4.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4)",
+            "PW.4.2"
+          ],
+          "text": "PW.4.2: Create and maintain well-secured software components in-house following SDLC processes to meet common internal software development needs that cannot be better met by third-party software components."
+        },
+        {
+          "citation_label": "PW.4.4",
+          "anchor": "PW.4.4",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4)",
+            "PW.4.4"
+          ],
+          "text": "PW.4.4: Verify that acquired commercial, open-source, and all other third-party software components comply with the requirements, as defined by the organization, throughout their life cycles."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.5",
+      "anchor": "PW.5",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Create Source Code by Adhering to Secure Coding Practices (PW.5)"
+      ],
+      "text": "Create Source Code by Adhering to Secure Coding Practices (PW.5): Decrease the number of security vulnerabilities in the software, and reduce costs by minimizing vulnerabilities introduced during source code creation that meet or exceed organization-defined vulnerability severity criteria.\n\nPW.5.1: Follow all secure coding practices that are appropriate to the development languages and environment to meet the organization’s requirements.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.5.1",
+          "anchor": "PW.5.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Create Source Code by Adhering to Secure Coding Practices (PW.5)",
+            "PW.5.1"
+          ],
+          "text": "PW.5.1: Follow all secure coding practices that are appropriate to the development languages and environment to meet the organization’s requirements."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.6",
+      "anchor": "PW.6",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "A0036, A0047 Practices Configure the Compilation, Interpreter, and Build Processes to Improve Executable Security (PW.6)"
+      ],
+      "text": "A0036, A0047 Practices Configure the Compilation, Interpreter, and Build Processes to Improve Executable Security (PW.6): Decrease the number of security vulnerabilities in the software and reduce costs by eliminating vulnerabilities before testing occurs.\n\nPW.6.1: Use compiler, interpreter, and build tools that offer features to improve executable security.\nPW.6.2: Determine which compiler, interpreter, and build tool features should be used and how each should be configured, then implement and use the approved configurations.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.6.1",
+          "anchor": "PW.6.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "A0036, A0047 Practices Configure the Compilation, Interpreter, and Build Processes to Improve Executable Security (PW.6)",
+            "PW.6.1"
+          ],
+          "text": "PW.6.1: Use compiler, interpreter, and build tools that offer features to improve executable security."
+        },
+        {
+          "citation_label": "PW.6.2",
+          "anchor": "PW.6.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "A0036, A0047 Practices Configure the Compilation, Interpreter, and Build Processes to Improve Executable Security (PW.6)",
+            "PW.6.2"
+          ],
+          "text": "PW.6.2: Determine which compiler, interpreter, and build tool features should be used and how each should be configured, then implement and use the approved configurations."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.7",
+      "anchor": "PW.7",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7)"
+      ],
+      "text": "Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7): Help identify vulnerabilities so that they can be corrected before the software is released to prevent exploitation. Using automated methods lowers the effort and resources needed to detect vulnerabilities. Human-readable code includes source code, scripts, and any other form of code that an organization deems humanreadable.\n\nPW.7.1: Determine whether code review (a person looks directly at the code to find issues) and/or code analysis (tools are used to find issues in code, either in a fully automated way or in conjunction with a person) should be used, as defined by the organization.\nPW.7.2: Perform the code review and/or code analysis based on the organization’s secure coding standards, and record and triage all discovered issues and recommended remediations in the development team’s workflow or issue tracking system.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.7.1",
+          "anchor": "PW.7.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7)",
+            "PW.7.1"
+          ],
+          "text": "PW.7.1: Determine whether code review (a person looks directly at the code to find issues) and/or code analysis (tools are used to find issues in code, either in a fully automated way or in conjunction with a person) should be used, as defined by the organization."
+        },
+        {
+          "citation_label": "PW.7.2",
+          "anchor": "PW.7.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7)",
+            "PW.7.2"
+          ],
+          "text": "PW.7.2: Perform the code review and/or code analysis based on the organization’s secure coding standards, and record and triage all discovered issues and recommended remediations in the development team’s workflow or issue tracking system."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.8",
+      "anchor": "PW.8",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "Tasks Requiring the Help of Security Experts 10 Test Executable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.8)"
+      ],
+      "text": "Tasks Requiring the Help of Security Experts 10 Test Executable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.8): Help identify vulnerabilities so that they can be corrected before the software is released in order to prevent exploitation. Using automated methods lowers the effort and resources needed to detect vulnerabilities and improves traceability and repeatability. Executable code includes binaries, directly executed bytecode and source code, and any other form of code that an organization deems executable.\n\nPW.8.1: Determine whether executable code testing should be performed to find vulnerabilities not identified by previous reviews, analysis, or testing and, if so, which types of testing should be used.\nPW.8.2: Scope the testing, design the tests, perform the testing, and document the results, including recording and triaging all discovered issues and recommended remediations in the development team’s workflow or issue tracking system.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.8.1",
+          "anchor": "PW.8.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Tasks Requiring the Help of Security Experts 10 Test Executable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.8)",
+            "PW.8.1"
+          ],
+          "text": "PW.8.1: Determine whether executable code testing should be performed to find vulnerabilities not identified by previous reviews, analysis, or testing and, if so, which types of testing should be used."
+        },
+        {
+          "citation_label": "PW.8.2",
+          "anchor": "PW.8.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "Tasks Requiring the Help of Security Experts 10 Test Executable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.8)",
+            "PW.8.2"
+          ],
+          "text": "PW.8.2: Scope the testing, design the tests, perform the testing, and document the results, including recording and triaging all discovered issues and recommended remediations in the development team’s workflow or issue tracking system."
+        }
+      ]
+    },
+    {
+      "citation_label": "PW.9",
+      "anchor": "PW.9",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Produce Well-Secured Software (PW)",
+        "A0015 Practices Configure Software to Have Secure Settings by Default (PW.9)"
+      ],
+      "text": "A0015 Practices Configure Software to Have Secure Settings by Default (PW.9): Help improve the security of the software at the time of installation to reduce the likelihood of the software being deployed with weak security settings, putting it at greater risk of compromise. Respond to Vulnerabilities (RV)\n\nPW.9.1: Define a secure baseline by determining how to configure each setting that has an effect on security or a security-related setting so that the default settings are secure and do not weaken the security functions provided by the platform, network infrastructure, or services.\nPW.9.2: Implement the default settings (or groups of default settings, if applicable), and document each setting for software administrators.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "PW.9.1",
+          "anchor": "PW.9.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "A0015 Practices Configure Software to Have Secure Settings by Default (PW.9)",
+            "PW.9.1"
+          ],
+          "text": "PW.9.1: Define a secure baseline by determining how to configure each setting that has an effect on security or a security-related setting so that the default settings are secure and do not weaken the security functions provided by the platform, network infrastructure, or services."
+        },
+        {
+          "citation_label": "PW.9.2",
+          "anchor": "PW.9.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Produce Well-Secured Software (PW)",
+            "A0015 Practices Configure Software to Have Secure Settings by Default (PW.9)",
+            "PW.9.2"
+          ],
+          "text": "PW.9.2: Implement the default settings (or groups of default settings, if applicable), and document each setting for software administrators."
+        }
+      ]
+    },
+    {
+      "citation_label": "RV.1",
+      "anchor": "RV.1",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Respond to Vulnerabilities (RV)",
+        "Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1)"
+      ],
+      "text": "Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1): Help ensure that vulnerabilities are identified more quickly so that they can be remediated more quickly in accordance with risk, reducing the window of opportunity for attackers.\n\nRV.1.1: Gather information from software acquirers, users, and public sources on potential vulnerabilities in the software and third-party components that the software uses, and investigate all credible reports.\nRV.1.2: Review, analyze, and/or test the software’s code to identify or confirm the presence of previously undetected vulnerabilities.\nRV.1.3: Have a policy that addresses vulnerability disclosure and remediation, and implement the roles, responsibilities, and processes needed to support that policy. Assess, Prioritize, and Remediate Vulnerabilities (RV.2): Help ensure that vulnerabilities are remediated in accordance with risk to reduce the window of opportunity for attackers.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "RV.1.1",
+          "anchor": "RV.1.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1)",
+            "RV.1.1"
+          ],
+          "text": "RV.1.1: Gather information from software acquirers, users, and public sources on potential vulnerabilities in the software and third-party components that the software uses, and investigate all credible reports."
+        },
+        {
+          "citation_label": "RV.1.2",
+          "anchor": "RV.1.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1)",
+            "RV.1.2"
+          ],
+          "text": "RV.1.2: Review, analyze, and/or test the software’s code to identify or confirm the presence of previously undetected vulnerabilities."
+        },
+        {
+          "citation_label": "RV.1.3",
+          "anchor": "RV.1.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1)",
+            "RV.1.3"
+          ],
+          "text": "RV.1.3: Have a policy that addresses vulnerability disclosure and remediation, and implement the roles, responsibilities, and processes needed to support that policy. Assess, Prioritize, and Remediate Vulnerabilities (RV.2): Help ensure that vulnerabilities are remediated in accordance with risk to reduce the window of opportunity for attackers."
+        }
+      ]
+    },
+    {
+      "citation_label": "RV.2",
+      "anchor": "RV.2",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Respond to Vulnerabilities (RV)",
+        "Assess, Prioritize, and Remediate Vulnerabilities (RV.2)"
+      ],
+      "text": "Assess, Prioritize, and Remediate Vulnerabilities (RV.2): Help ensure that vulnerabilities are remediated in accordance with risk to reduce the window of opportunity for attackers.\n\nRV.2.1: Analyze each vulnerability to gather sufficient information about risk to plan its remediation or other risk response.\nRV.2.2: Plan and implement risk responses for vulnerabilities.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "RV.2.1",
+          "anchor": "RV.2.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "Assess, Prioritize, and Remediate Vulnerabilities (RV.2)",
+            "RV.2.1"
+          ],
+          "text": "RV.2.1: Analyze each vulnerability to gather sufficient information about risk to plan its remediation or other risk response."
+        },
+        {
+          "citation_label": "RV.2.2",
+          "anchor": "RV.2.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "Assess, Prioritize, and Remediate Vulnerabilities (RV.2)",
+            "RV.2.2"
+          ],
+          "text": "RV.2.2: Plan and implement risk responses for vulnerabilities."
+        }
+      ]
+    },
+    {
+      "citation_label": "RV.3",
+      "anchor": "RV.3",
+      "hierarchy_path": [
+        "NIST SSDF",
+        "Respond to Vulnerabilities (RV)",
+        "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3)"
+      ],
+      "text": "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3): Help reduce the frequency of vulnerabilities in the future.\n\nRV.3.1: Analyze identified vulnerabilities to determine their root causes.\nRV.3.2: Analyze the root causes over time to identify patterns, such as a particular secure coding practice not being followed consistently.\nRV.3.3: Review the software for similar vulnerabilities to eradicate a class of vulnerabilities, and proactively fix them rather than waiting for external reports.\nRV.3.4: Review the SDLC process, and update it if appropriate to prevent (or reduce the likelihood of) the root cause recurring in updates to the software or in new software that is created.",
+      "source_url": "https://doi.org/10.6028/NIST.SP.800-218",
+      "children": [
+        {
+          "citation_label": "RV.3.1",
+          "anchor": "RV.3.1",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3)",
+            "RV.3.1"
+          ],
+          "text": "RV.3.1: Analyze identified vulnerabilities to determine their root causes."
+        },
+        {
+          "citation_label": "RV.3.2",
+          "anchor": "RV.3.2",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3)",
+            "RV.3.2"
+          ],
+          "text": "RV.3.2: Analyze the root causes over time to identify patterns, such as a particular secure coding practice not being followed consistently."
+        },
+        {
+          "citation_label": "RV.3.3",
+          "anchor": "RV.3.3",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3)",
+            "RV.3.3"
+          ],
+          "text": "RV.3.3: Review the software for similar vulnerabilities to eradicate a class of vulnerabilities, and proactively fix them rather than waiting for external reports."
+        },
+        {
+          "citation_label": "RV.3.4",
+          "anchor": "RV.3.4",
+          "hierarchy_path": [
+            "NIST SSDF",
+            "Respond to Vulnerabilities (RV)",
+            "S0078 Analyze Vulnerabilities to Identify Their Root Causes (RV.3)",
+            "RV.3.4"
+          ],
+          "text": "RV.3.4: Review the SDLC process, and update it if appropriate to prevent (or reduce the likelihood of) the root cause recurring in updates to the software or in new software that is created."
+        }
+      ]
+    }
+  ]
+}
