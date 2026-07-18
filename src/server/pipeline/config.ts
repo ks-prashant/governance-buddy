@@ -13,8 +13,13 @@
 export const MODELS = {
   /** Classify input · sufficiency check · query decomposition — cheap, fast, on the critical path. */
   classify: process.env.MODEL_CLASSIFY ?? "claude-haiku-4-5",
-  /** Grounded generation (the obligation map) — the quality-critical synthesis step. */
-  generate: process.env.MODEL_GENERATE ?? "claude-opus-4-8",
+  /** Grounded generation (the obligation map) — the quality-critical synthesis step.
+   *  ⚠️ TEMPORARY (2026-07-18, cost measure) — default switched from "claude-opus-4-8"
+   *  to "claude-sonnet-5" so the Phase D eval fits a ~$5 API budget (Opus is ~5× the
+   *  output price and generation is the dominant eval cost). REVERT to "claude-opus-4-8"
+   *  before the launch/final eval — the gate must certify the model that actually ships.
+   *  Tracked in docs/BUILD_PLAN.md §0 (session log) + §D. */
+  generate: process.env.MODEL_GENERATE ?? "claude-sonnet-5",
   /** Citation validation (claim ⊢ cited chunk) — a constrained entailment check. */
   validate: process.env.MODEL_VALIDATE ?? "claude-haiku-4-5",
   /** Follow-up answers — same grounding rules; Sonnet 5 is the cost-down lever if volume grows. */

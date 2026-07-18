@@ -35,6 +35,32 @@ re-deriving it from git log or re-reading every phase section.
 
 ### Session log (most recent first)
 
+**2026-07-18 (latest) — Cost-scoped Phase D eval plan + TEMPORARY generation-model switch.**
+User funded the Anthropic account with **$5** (payment partially resolved) and asked for a
+rigorously cost-scoped eval plan. Costed the harness from the actual call structure
+(`evals/run_eval.mjs`): the judge is Sonnet 5 (harness default), 1 call for refuse/clarify
+items and 3 (Prompt A+B+C) for answer items; the product pipeline only runs the expensive
+`generate` step on *answer* items (refusals are routed, clarify stops early). The Phase D
+24-item GDPR subset is **7 answer / 13 refuse / 4 clarify**, so only **7 generations** — est.
+**~$1.6, worst case ~$3.4**, fits $5 with room for one partial re-run. **Decision — run the
+Phase D 24-item GDPR gate; DEFER the full 64-item Phase E eval** (it's both blocked on the
+unloaded 5-framework corpus and unaffordable — ~30+ generations ≈ $6–12).
+**⚠️ TEMPORARY generation-model switch (revert before launch):** per user's cost decision,
+`config.ts` `MODELS.generate` default changed **`claude-opus-4-8` → `claude-sonnet-5`** to run
+the eval cheaply. **This means the Phase D gate result will certify the Sonnet-5 config, NOT
+the shipping Opus-4.8 config.** The user's explicit instruction: keep it on Sonnet for now,
+and **once the whole app is ready, switch `generate` back to `claude-opus-4-8` and re-run the
+evals** before treating the gate as final. (Follow-up model left on Opus — not exercised by
+the eval.) Do NOT mark Phase D's gate as officially met on a Sonnet run — it's an interim
+signal until the Opus re-run.
+**Cost-saving measures for the run:** judge stays Sonnet 5 (never Opus); run once, then
+re-run ONLY failing IDs via `SUBSET_IDS` (biggest lever); prompt-cache the generate prefix;
+skip Batch API (savings not worth the rework at this scale). **Verify-first:** a ~free direct
+Anthropic call (harness judge key) + one product `/api/generate` call (~$0.15, exercises the
+*deployed* product's own key — a separate secret) to confirm BOTH keys have credit before
+firing all 24. **Prereq before the run:** the Sonnet config must be deployed live (sync →
+deploy → verify `latest_commit_sha`), since the eval hits the deployed endpoint, not local.
+
 **2026-07-18 (later) — Phase E step 1: the other four parsers (deterministic structuring).**
 With evals parked (Anthropic payment still unresolved), moved forward on the part of Phase E
 that needs no API credits: the framework-specific parsers (§E step 1) and the deterministic
@@ -236,7 +262,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 
 ### A.5 Config baseline (from the system design, confirm at build)
 
-- Models: `MODEL_CLASSIFY=claude-haiku-4-5`, `MODEL_GENERATE=claude-opus-4-8`, `MODEL_VALIDATE=claude-haiku-4-5`, `MODEL_FOLLOWUP=claude-opus-4-8` (Sonnet 5 as a cost lever later). **[Confirmed at build]** all working model IDs.
+- Models: `MODEL_CLASSIFY=claude-haiku-4-5`, `MODEL_GENERATE=claude-opus-4-8`, `MODEL_VALIDATE=claude-haiku-4-5`, `MODEL_FOLLOWUP=claude-opus-4-8` (Sonnet 5 as a cost lever later). **[Confirmed at build]** all working model IDs. **[⚠️ TEMPORARY 2026-07-18]** `MODEL_GENERATE` default is currently **`claude-sonnet-5`**, not Opus 4.8 — a cost measure to run the Phase D eval within a ~$5 budget. **Revert to `claude-opus-4-8` before the launch/final eval** (see §0 session log).
 - Embeddings: **[Confirmed at build]** `voyage-3-large`, 1024 dimensions — vector column is `vector(1024)`.
 - Generation: adaptive thinking on, `effort: high`; **prompt-cache** the stable system prefix. **[Note for Phase D]** forced tool-use (the structured-output mechanism actually used, system design §4.5) is incompatible with `thinking` enabled — resolve this combination when building Step A, don't assume both apply simultaneously.
 - Never put user text or the snapshot date *inside* the cached prefix (prefix-match invalidation).
