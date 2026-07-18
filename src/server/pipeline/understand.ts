@@ -6,10 +6,11 @@
  * a system description supplies enough to map reliably (PRD §8.2 — function, data,
  * decision-impact-on-people, deployment region), and a set of retrieval sub-queries.
  *
- * Phase C note: only GDPR is loaded, so subqueries are prompted for RECALL
- * (paraphrase/expand), not full five-dimension fan-out — that lands in Phase 4
- * (build plan §E) once all five frameworks are ingested. The `dimension` field is
- * already part of the shape so Phase 4 only changes the prompt, not the schema.
+ * Phase E: the real DR-4 five-dimension fan-out is ON — a system_description is
+ * decomposed into sub-queries spanning privacy (GDPR), ai_regulation (EU AI Act),
+ * ai_risk (NIST AI RMF), cybersecurity (NIST CSF 2.0), and secure_development (NIST
+ * SSDF), so cross-framework coverage is produced by design, not by luck. A direct
+ * question is expanded/rewritten for recall (DR-5) instead of fanned out.
  */
 import { z } from "zod";
 import { llm, type LlmTool } from "./llm";
@@ -107,14 +108,18 @@ const TOOL: LlmTool = {
       subqueries: {
         type: "array",
         minItems: 1,
-        maxItems: 6,
+        maxItems: 8,
         items: {
           type: "object",
           properties: {
             dimension: { type: "string", enum: DIMENSIONS },
             query: {
               type: "string",
-              description: "A paraphrase/expansion of the input to maximize retrieval recall.",
+              description:
+                "A retrieval sub-query using the precise terminology of the framework(s) " +
+                "that own this dimension (privacy→GDPR, ai_regulation→EU AI Act, ai_risk→" +
+                "NIST AI RMF, cybersecurity→NIST CSF 2.0, secure_development→NIST SSDF), so " +
+                "the query semantically matches that corpus, not just the plain-language input.",
             },
           },
           required: ["dimension", "query"],
@@ -176,12 +181,26 @@ counts as multiple questions even inside one sentence. If several attributes are
 missing, pick only the one that would most change the obligations and ask about that
 alone; the user can be asked again next turn if more is still missing.
 
-Subqueries: produce 2-6 paraphrases/expansions of the input that maximize retrieval
-recall against a legal/framework corpus (use precise legal terminology alongside the
-plain-language original). Tag each with the single most relevant dimension from:
-privacy, ai_regulation, ai_risk, cybersecurity, secure_development. The corpus
-currently only covers GDPR (privacy) in full — most subqueries will naturally be
-"privacy" during this phase; that's expected.`;
+Subqueries — the corpus covers FIVE frameworks, one per governance dimension:
+  privacy → GDPR · ai_regulation → EU AI Act · ai_risk → NIST AI RMF ·
+  cybersecurity → NIST CSF 2.0 · secure_development → NIST SSDF.
+
+For a "system_description": FAN OUT across every dimension that plausibly applies to the
+system — one sub-query per relevant dimension (usually 4–6 of the five), each phrased in
+that framework's own terminology so it matches that corpus (e.g. privacy: "lawful basis,
+data minimisation, automated decision-making, DPIA"; ai_regulation: "high-risk AI system,
+conformity assessment, human oversight, technical documentation"; ai_risk: "MAP/MEASURE/
+MANAGE, trustworthiness characteristics, bias"; cybersecurity: "PROTECT/DETECT, access
+control, data security, logging"; secure_development: "secure SDLC, vulnerability response,
+third-party components"). This is what makes cross-framework coverage happen BY DESIGN
+(DR-4) rather than by luck — do not collapse everything into one "privacy" query. Only skip
+a dimension if the system clearly has no connection to it at all.
+
+For a "direct_question": expand/rewrite the question for recall (DR-5) — 2–4 sub-queries
+with precise legal/framework terminology alongside the plain-language original. Tag each
+with its most relevant dimension; a framework-specific question may legitimately stay within
+one or two dimensions. Do not fabricate cross-framework fan-out for a question that is plainly
+about a single framework.`;
 
 export async function understand(input: string): Promise<QueryUnderstanding> {
   const result = await llm({

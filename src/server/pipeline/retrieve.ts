@@ -212,17 +212,43 @@ export async function expandToParents(
 }
 
 /** Extract explicit citation references from raw input and turn them into
- *  citation_label ILIKE patterns. GDPR article form for now ("Article 22", "Art. 6(1)"
- *  → "Art. 22%", "Art. 6(1)%"); Phase E extends this for the other frameworks'
- *  identifier shapes (Annex III, PR.DS-01, MAP 1.1, PW.4.1). */
+ *  citation_label ILIKE patterns, so a user who names a specific clause gets it pinned
+ *  regardless of how its body text reads. Covers every framework's identifier shape:
+ *   - GDPR / EU AI Act articles:  "Article 22", "Art. 6(1)"   → "Art. 22%", "Art. 6(1)%"
+ *   - EU AI Act annexes:          "Annex III(5)(b)", "Annex I" → "Annex III(5)%", "Annex I%"
+ *   - NIST CSF / SSDF codes:      "PR.DS-01", "PR.DS", "PW.4.1", "PW.4"
+ *   - NIST AI RMF subcategories:  "MAP 1.1", "GOVERN 2.3"      → "MAP 1.1%", "GOVERN 2.3%"
+ *  Patterns are matched case-insensitively against chunk citation_labels; a broad code
+ *  (e.g. "PR.DS") legitimately pins the whole family, a specific one ("PR.DS-01") pins
+ *  just that clause. Pinning is an enhancement, degraded gracefully if the RPC fails. */
 export function extractCitationPatterns(input: string): string[] {
   const patterns = new Set<string>();
-  const re = /\bart(?:icle)?\.?\s*(\d+)\s*(?:\((\d+)\))?/gi;
+
+  // GDPR / EU AI Act articles.
+  const reArticle = /\bart(?:icle)?\.?\s*(\d+)\s*(?:\((\d+)\))?/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(input))) {
-    const para = m[2] ? `(${m[2]})` : "";
-    patterns.add(`Art. ${m[1]}${para}%`);
+  while ((m = reArticle.exec(input))) {
+    patterns.add(`Art. ${m[1]}${m[2] ? `(${m[2]})` : ""}%`);
   }
+
+  // EU AI Act annexes: "Annex III", "Annex III(5)", "Annex III(5)(b)" → point reduces to area.
+  const reAnnex = /\bannex\s+([IVXLC]+)\s*(?:\((\d+)\))?/gi;
+  while ((m = reAnnex.exec(input))) {
+    patterns.add(m[2] ? `Annex ${m[1].toUpperCase()}(${m[2]})%` : `Annex ${m[1].toUpperCase()}%`);
+  }
+
+  // NIST CSF / SSDF dotted codes: "PR.DS-01", "PR.DS", "PW.4.1", "PW.4", "GV.SC", "PS.3.2".
+  const reNistCode = /\b([A-Z]{2}\.[A-Z]{2}(?:-\d{2})?|(?:PO|PS|PW|RV)\.\d+(?:\.\d+)?)\b/g;
+  while ((m = reNistCode.exec(input))) {
+    patterns.add(`${m[1]}%`);
+  }
+
+  // NIST AI RMF subcategories: "MAP 1.1", "GOVERN 2.3", "MEASURE 2.11".
+  const reAiRmf = /\b(GOVERN|MAP|MEASURE|MANAGE)\s+(\d+\.\d+)\b/gi;
+  while ((m = reAiRmf.exec(input))) {
+    patterns.add(`${m[1].toUpperCase()} ${m[2]}%`);
+  }
+
   return [...patterns];
 }
 
