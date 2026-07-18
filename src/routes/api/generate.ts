@@ -16,7 +16,13 @@ export const Route = createFileRoute("/api/generate")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let body: { input?: unknown; frameworkId?: unknown; stream?: unknown; mode?: unknown };
+        let body: {
+          input?: unknown;
+          frameworkId?: unknown;
+          stream?: unknown;
+          mode?: unknown;
+          sessionId?: unknown;
+        };
         try {
           body = await request.json();
         } catch {
@@ -31,6 +37,7 @@ export const Route = createFileRoute("/api/generate")({
         // "followup" routes to MODELS.followup (PRD FR-6.1-6.3 — same grounding rules as
         // the map, build plan §I step 1); anything else (including omitted) is the map.
         const mode = body.mode === "followup" ? "followup" : "map";
+        const sessionId = typeof body.sessionId === "string" ? body.sessionId : "no-session";
 
         // Guard the dynamic imports + non-streaming path the same way retrieve.ts does —
         // a module-load hiccup here would otherwise fall through to the framework's
@@ -40,12 +47,30 @@ export const Route = createFileRoute("/api/generate")({
         >["supabaseAdmin"];
         let runPipeline: typeof import("@/server/pipeline/pipeline").runPipeline;
         let collectPipeline: typeof import("@/server/pipeline/pipeline").collectPipeline;
+        let checkAndRecordRateLimit: typeof import("@/server/pipeline/rate-limit").checkAndRecordRateLimit;
+        let clientIp: typeof import("@/server/pipeline/rate-limit").clientIp;
         let model: string | undefined;
         try {
           ({ supabaseAdmin } = await import("@/integrations/supabase/client.server"));
           ({ runPipeline, collectPipeline } = await import("@/server/pipeline/pipeline"));
+          ({ checkAndRecordRateLimit, clientIp } = await import("@/server/pipeline/rate-limit"));
           if (mode === "followup") {
             ({ MODELS: { followup: model } } = await import("@/server/pipeline/config"));
+          }
+
+          // Rate limit BEFORE the expensive pipeline runs (build plan §I step 2) — a
+          // refusal here is a 429, never a fabricated/degraded answer (system design §15).
+          const rl = await checkAndRecordRateLimit(supabaseAdmin, sessionId, clientIp(request));
+          if (!rl.allowed) {
+            return json(
+              {
+                error:
+                  rl.reason === "session"
+                    ? "You've hit the request limit for this session. Please wait a few minutes and try again."
+                    : "This network has hit the request limit. Please wait a while and try again.",
+              },
+              { status: 429 },
+            );
           }
 
           if (!wantStream) {

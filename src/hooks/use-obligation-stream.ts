@@ -9,7 +9,7 @@
  * (system design §15) — never a partial fabricated answer.
  */
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { track } from "@/lib/analytics";
+import { track, sessionId } from "@/lib/analytics";
 
 export type ApplicabilityLabel = "Direct" | "Inferred" | "Possible";
 export type ImpactLabel = "high" | "medium" | "low";
@@ -125,7 +125,13 @@ export function useObligationStream() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input, frameworkId: opts.frameworkId, mode: opts.mode, stream: true }),
+        body: JSON.stringify({
+          input,
+          frameworkId: opts.frameworkId,
+          mode: opts.mode,
+          sessionId: sessionId(),
+          stream: true,
+        }),
         signal: controller.signal,
       });
 

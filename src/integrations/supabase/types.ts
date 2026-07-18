@@ -315,6 +315,27 @@ export type Database = {
           },
         ]
       }
+      generation_requests: {
+        Row: {
+          id: string
+          ip: string
+          session_id: string
+          ts: string
+        }
+        Insert: {
+          id?: string
+          ip: string
+          session_id: string
+          ts?: string
+        }
+        Update: {
+          id?: string
+          ip?: string
+          session_id?: string
+          ts?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

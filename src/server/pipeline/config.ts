@@ -83,6 +83,21 @@ export const RETRIEVAL = {
 } as const;
 
 /**
+ * Rate limiting / cost caps on the generation endpoint (build plan §I step 2). Checked
+ * against the `generation_requests` table BEFORE the expensive pipeline runs — a
+ * session or IP over its window is refused with 429, never a partial/degraded answer.
+ */
+export const RATE_LIMIT = {
+  /** Max /api/generate attempts from one session_id within sessionWindowMinutes. */
+  perSessionMax: Number(process.env.RATE_LIMIT_SESSION_MAX ?? 8),
+  sessionWindowMinutes: Number(process.env.RATE_LIMIT_SESSION_WINDOW_MIN ?? 10),
+  /** Max /api/generate attempts from one IP within ipWindowMinutes (covers many
+   *  sessions behind one NAT/office network, so it's deliberately looser). */
+  perIpMax: Number(process.env.RATE_LIMIT_IP_MAX ?? 30),
+  ipWindowMinutes: Number(process.env.RATE_LIMIT_IP_WINDOW_MIN ?? 60),
+} as const;
+
+/**
  * Priority-tier weights (system design §7.4, PRD §15 — left to tuning).
  * tier_score = w1·applicability + w2·impact + w3·retrieval_confidence.
  * Start near-equal; tune against the golden set. Tiers are computed in app code,
