@@ -35,6 +35,37 @@ re-deriving it from git log or re-reading every phase section.
 
 ### Session log (most recent first)
 
+**2026-07-18 (latest+2) — ADV-03/ADV-12 root-caused to a real architectural gap; deferred
+by design, not by budget.** Spent one more small probe (~$0.3–0.4, no judge — direct
+`retrievedContext`/text inspection) on the two still-failing answer items flagged in the
+entry below. Finding is different from what was assumed: **retrieval and generation both
+work correctly** for these — the model's raw response text correctly identifies that GDPR
+Article 99 is "Entry into force and application" (nothing to do with AI training data) and
+correctly identifies GDPR Art. 33/34/40/58/70 as the actual 72-hour-breach source with no
+EU AI Act equivalent. The failure is downstream: both items need a **corrective/negative
+claim** ("this article does NOT say X" / "no such provision exists"), which doesn't fit the
+`obligations` schema (`generate.ts`'s `{statement, rationale, supporting_chunk_ids, ...}` is
+built for positive "you must do X" statements). Step B's strict entailment check
+(`validate.ts`) then drops the model's correct reasoning as "not entailed" — a source
+doesn't literally assert its own absence of content — leaving zero surviving obligations,
+so the pipeline returns `"empty"` instead of `"answer"`.
+**This is a real design question, not a quick prompt patch:** how should the product
+represent a premise-correction / fabrication-bait-declined answer? Options include a
+dedicated `corrections`-style field alongside `obligations` in the generation schema, or a
+relaxed Step-B rule for claims about a citation's absence of content. Per user's explicit
+choice, **not attempting a fix this session** — flagged here for deliberate design
+work in a future session, rather than a rushed schema change against a shrinking eval
+budget. **Total session spend: ~$2.5–2.9 of $5; ~$2.1–2.5 remaining**, preserved (no further
+eval spend this session).
+**Updated Phase D status:** two real, verified fixes landed (OOC misclassification, `011b1e0`
++ `ca4821f`) and one real, well-understood, deliberately-deferred gap (ADV-03/ADV-12's
+premise-correction shape). The formal 24-item gate has NOT been re-run in full since the
+fixes — do not treat Phase D as closed. **Next action, whenever resumed:** (1) design the
+premise-correction representation (the open question above), (2) implement + verify against
+just ADV-03/ADV-12 (~$0.1–0.2), (3) THEN spend on one full 24-item re-run for a definitive
+gate read (~$1.7–2, only affordable if steps 1–2 stay cheap) — do this in that order, not
+by re-running the full gate speculatively.
+
 **2026-07-18 (latest+1) — Phase D eval EXECUTED on $5 budget: 1 real regression found,
 root-caused, and fixed+verified; gate still not green.** Ran the cost-scoped plan from the
 entry below. Both keys confirmed funded via cheap probes (~$0.15). Deployed the Sonnet-5
