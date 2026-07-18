@@ -77,13 +77,19 @@ const TOOL: LlmTool = {
           "For a system_description (including the bare-compliance-question case above): " +
           "true only if the text gives enough signal on (1) what the system does, (2) what " +
           "data it uses, (3) whether it makes or informs decisions about people, and (4) " +
-          "where it is deployed/whose data. A bare 'is our app compliant?' with zero system " +
-          "detail is missing all four and must be sufficient:false. Always true for a " +
-          "direct_question. EXCEPTION: if the input names a specific external law/" +
-          "regulation/standard as its subject (HIPAA, CCPA, a named state/city law, LGPD, " +
-          "PIPL, UK GDPR, etc.), sufficient must be true regardless of missing system " +
-          "attributes — more system detail cannot make an unlisted regime answerable, only " +
-          "corpus coverage can, which is checked downstream.",
+          "where it is deployed/whose data — but ONLY when the ask itself is BROAD (a full " +
+          "obligation map / general compliance check, e.g. 'is our app compliant?', 'what " +
+          "are our obligations?'). A bare 'is our app compliant?' with zero system detail " +
+          "is missing all four and must be sufficient:false. Always true for a " +
+          "direct_question. EXCEPTION — NARROW asks are always sufficient:true regardless " +
+          "of unstated system attributes, because more detail would not change whether THAT " +
+          "specific thing is answerable (only corpus coverage does, checked downstream): " +
+          "(a) the input names a specific external law/regulation/standard as its subject " +
+          "(HIPAA, CCPA, a named state/city law, LGPD, PIPL, UK GDPR, etc.); (b) the input " +
+          "names a specific tension, conflict, or comparison between two identifiable things " +
+          "('how do these frameworks pull against each other on X vs Y', 'which is it, A or " +
+          "B?') even without full system detail — the tension itself is what's being asked " +
+          "about, not a full map.",
       },
       missing_attribute: {
         type: "string",
@@ -155,24 +161,38 @@ Classify input_type:
   for inputs that do NOT name a specific external framework (a generic "is our app
   compliant?" or a thin feature description with no named law at all).
 
-Sufficiency: for "system_description" (including the bare-compliance-question case
-above), sufficient only if the input gives enough signal on what the system does, what
-data it uses, whether it makes or informs decisions about people, and where it is
-deployed / whose data. If a critical attribute is missing AND its absence would
-materially change the obligations, set sufficient:false, name the missing_attribute,
-and phrase EXACTLY ONE clarifying_question. A bare "is our app compliant?" with zero
-system detail is missing ALL four attributes — still ask only ONE question, naming the
-most critical gap (what the system does), not a list of everything missing. Never
-silently assume. "direct_question" inputs are always sufficient:true.
+Sufficiency — the central question is BROAD vs. NARROW, not "how much system detail is
+present":
+- A BROAD ask requests a full obligation map or general compliance read on the user's own
+  system ("is our app compliant?", "what are our obligations?", "map this for us", or a
+  system_description offered with no specific question attached). For these, sufficient
+  only if the input gives enough signal on what the system does, what data it uses,
+  whether it makes or informs decisions about people, and where it is deployed / whose
+  data. If a critical attribute is missing AND its absence would materially change the
+  obligations, set sufficient:false, name the missing_attribute, and phrase EXACTLY ONE
+  clarifying_question. A bare "is our app compliant?" with zero system detail is missing
+  ALL four attributes — still ask only ONE question, naming the most critical gap (what
+  the system does), not a list of everything missing. Never silently assume.
+- A NARROW ask names a specific, self-contained thing to resolve — a named external
+  framework, a named clause, or a specific tension/conflict/comparison between two
+  identifiable requirements ("how do these frameworks pull against each other on X vs
+  Y?", "which is it, A or B?", "do these goals conflict?"). These are ALWAYS
+  sufficient:true, even when phrased with "our AI"/"our system" and even when other
+  system attributes (decision impact, deployment region, etc.) are unstated — because
+  more detail about the system would not change whether THAT SPECIFIC thing is
+  answerable. Whether it's actually answerable is a corpus-coverage question, decided by
+  retrieval downstream, not by this classification step. Two common shapes of narrow ask:
+  (a) names a specific external law/regulation/standard as its subject (HIPAA, CCPA, a
+  named state/city law, LGPD, PIPL, UK GDPR, ISO certifications, etc.); (b) names a
+  specific documented tension between two things the user already knows (e.g. "we need
+  ethnicity data to test for bias, but privacy rules push us to collect less — how do
+  these frameworks pull here?" already tells you the tension is bias-testing-data vs.
+  minimisation; asking what the system decides or where it's deployed doesn't change
+  whether that tension is answerable).
+- "direct_question" inputs are always sufficient:true, independent of the above.
 
-EXCEPTION — named external regime overrides sufficiency: if the input names a specific
-external law/regulation/standard as its subject (HIPAA, CCPA, a named state/city law,
-LGPD, PIPL, UK GDPR, ISO certifications, etc.), set sufficient:true and skip
-clarifying_question EVEN IF you classified input_type as "system_description" and even
-if some system attributes are still unstated. More system detail cannot make an
-unlisted regime answerable — only corpus coverage can, and that is determined by
-retrieval downstream, not by this classification step. Only ask a clarifying question
-about system attributes when NO specific external framework is named at all.
+Only ask a clarifying question when the ask is genuinely BROAD and thin — never for a
+narrow, specific ask just because it happens to omit some system attributes.
 
 The clarifying_question MUST be a single question — one sentence, one "?", asking about
 ONE thing (the single most critical missing attribute). Do NOT bundle multiple asks
