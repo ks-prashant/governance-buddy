@@ -28,12 +28,31 @@ re-deriving it from git log or re-reading every phase section.
 | A — Workspace setup | ✅ Done | trivial deploy + front end load confirmed |
 | B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
-| D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed, item-level-verified — **formal 24-item eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 6 root-cause fixes applied + deployed + individually verified since (`011b1e0`..`d116d9a`); no known open item-level issue remains, but the formal gate itself hasn't re-run. |
-| E — Full corpus + cross-framework | 🟡 Steps 1-4 DONE: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified — see §0 latest+5. Step 5 (full 64-item eval) deferred on Anthropic budget, not on known issues | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
+| D — Grounded generation + validation | 🟢 Code done, deployed, item-level-verified. **Formal 24-item gate deliberately deferred** (standing decision, §0 latest+6) to one run alongside Phase E's, after the whole app is built — not blocking further phases. | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 6 root-cause fixes applied + deployed + individually verified since (`011b1e0`..`d116d9a`); no known open item-level issue remains. |
+| E — Full corpus + cross-framework | 🟢 Steps 1-4 done: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). Both design gaps (ADV-03/ADV-12, CONF-01-family) fixed + verified. **Step 5 (64-item eval) deliberately deferred**, same standing decision as D. | all 5 frameworks pass validate; combined snapshot + cross-framework generation + premise-correction + conflict surfacing all verified live |
 | F — Hero UI | ⬜ Not started | — |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+6) — Phases A-E closed for now; handing off to Phase F in a new
+session.** User reviewed the state after latest+5 (both flagged gaps fixed+verified, no
+known open item-level issue) and made the standing decision recorded in §D above: **defer
+both the Phase D 24-item gate and the Phase E 64-item gate to one comprehensive run after
+the whole app (through Phase I) is built**, rather than running them now or phase-by-phase.
+This is deliberate, not budget-forced — plenty of the ~$1.7-2.1 remaining could cover either
+gate individually; the choice is to measure the finished product once rather than twice.
+Updated `architecture/SYSTEM_DESIGN.md` §17 (build sequence steps 3-4 were stale — said
+"Not started" / no marker; now reflect Phase D built+verified and Phase E steps 1-4 done)
+and `docs/BUILD_PLAN.md` §J (flagged the "eval every phase" cadence as suspended by this
+standing decision, with a pointer back here). **Phases A-E: no code work pending.** The
+only unchecked box across A-E is the deferred eval runs themselves — everything else (all
+5 frameworks parsed+ingested+validated+promoted into one live snapshot, 6 real bugs found
+and fixed across two sessions with regression guards verified, five-dimension decomposition
+and conflict surfacing confirmed live) is done and deployed. **Next action:** start Phase F
+(§F — the hero UI) in a new session, reading this build plan + `architecture/SYSTEM_DESIGN.md`
++ `design/DESIGN_AND_BRAND_GUIDELINES.md` first per the standard "how to use this" note at
+the top of this doc. Do not re-litigate or re-run the deferred evals unless explicitly asked.
 
 **2026-07-18 (latest+5) — Both flagged gaps (CONF-01, ADV-03/ADV-12) FIXED and VERIFIED;
 2 more live bugs found in the same session via end-to-end testing.** Discussed both gaps
@@ -535,7 +554,8 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 5. **Wire the eval harness:** point `evals/run_eval.mjs` `callProduct()` at the deployed streaming endpoint (consume the full stream, assemble the final response for grading); run the **GDPR subset** through the real pipeline (use the Batch API for judge calls).
 
 **Acceptance gate (the big one):** on the GDPR subset — **groundedness ≥95%, citation accuracy ≥90%, correct-refusal ≥90%**, zero verdict leaks, AND the first tier actually streams to a client within the 5s budget end-to-end (not just in theory). If short on the quality metrics, fix retrieval/prompt/validation here, not later. If short on latency, do not defer the fix to Phase F — it belongs here.
-**Commit point D. [🟡 Built + spot-checked + code-reviewed; gate NOT yet formally met.]** Full detail in §0's session log — summary: first real eval run (24-item GDPR subset) scored groundedness 93.3%/correct-refusal 83.3% (both FAIL), citation 93.8% (PASS). Root-caused and fixed 3 real gaps (a compliance-question classification gap bypassing the clarify path, bundled clarifying questions, and a "close-neighbor trap" generation gap producing obligations from the wrong regime's adjacent material) plus a harness bug (judge token truncation) and, in a follow-up full codebase review, 8 further bugs/gaps (see §0). All fixes deployed and confirmed via `get_project`'s `latest_commit_sha`. **Not yet re-measured against the gate** — blocked on Anthropic account credits during this session; re-run `evals/run_eval.mjs` with the `SUBSET_IDS` below once credits are confirmed working (test with a direct API call first, don't assume). GDPR Phase D subset ids: `DL-01,DL-02,DL-03,DL-04,ADV-02,ADV-03,ADV-12,OOC-01,OOC-02,OOC-03,OOC-04,OOC-05,OOC-06,OOC-07,OOC-08,OOC-09,OOC-10,OOC-11,OOC-12,ADV-09,CLR-01,CLR-02,CLR-03,CLR-05` (24 items — excludes cross-framework/other-framework/CONF items, which need Phase E's corpus).
+**Commit point D. [🟡 Built, streaming, code-reviewed, item-level-verified. Formal gate run deferred — see standing decision below.]** Full detail in §0's session log — summary: first real eval run (24-item GDPR subset) scored groundedness 93.3%/correct-refusal 83.3% (both FAIL), citation 93.8% (PASS). Root-caused and fixed 6 real gaps across two sessions (compliance-question classification, bundled clarifying questions, close-neighbor trap over-triggering on false-premise-with-real-source questions, a `gaps`/`obligations`/`subqueries` malformed-tool-call crash class, and the sufficiency gate's broad-vs-narrow reformulation) plus a harness bug and 8 further code-review bugs (see §0). All fixes deployed and individually verified live against every previously-failing golden item, with regression guards checked. **No known open item-level issue remains.** GDPR Phase D subset ids (for whenever the formal run happens): `DL-01,DL-02,DL-03,DL-04,ADV-02,ADV-03,ADV-12,OOC-01,OOC-02,OOC-03,OOC-04,OOC-05,OOC-06,OOC-07,OOC-08,OOC-09,OOC-10,OOC-11,OOC-12,ADV-09,CLR-01,CLR-02,CLR-03,CLR-05` (24 items).
+**Standing decision (2026-07-18):** the formal 24-item Phase D gate and Phase E's full 64-item gate are BOTH deliberately deferred — run once, together, after the whole app (through Phase I) is built, not phase-by-phase. This is a sequencing choice, not a blocker: build plan §J's "eval every phase" cadence is intentionally suspended for this project in favor of one comprehensive run at the end. A fresh session should NOT re-run partial evals or treat the gate as blocking further phases unless explicitly asked.
 
 ---
 
@@ -552,7 +572,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 5. **Full eval run** across all 64 golden questions via the harness.
 
 **Acceptance gate:** all three gating metrics green on the **full** golden set; cross-framework items (CF-*) produce multi-framework maps; conflict items (CONF-*) render paired without resolution; out-of-corpus items (OOC-*) refuse.
-**Commit point E.**
+**Commit point E. [🟡 Steps 1-4 done, item-level-verified. Step 5 (formal 64-item eval run) deferred per the standing decision in §D above.]** All five frameworks parsed + ingested + validated into one combined snapshot (630 parents / 1,573 chunks), promoted active. Five-dimension decomposition confirmed fanning live queries across frameworks. Conflicts seeded (4/4) and `conflicts_with` wired end-to-end. No known open item-level issue remains — see §0's session log for the specific fixes and live verifications (CONF-01, ADV-03, ADV-12, OOC-04, OOC-06, cross-framework citation, premise-correction).
 
 ---
 
@@ -624,7 +644,7 @@ Lovable and Claude Code both write to the **same GitHub branch** (default `main`
 
 ## J. Cadences & guardrails (apply throughout)
 
-- **Eval every phase, not just Phase 7.** After any change to ingestion, retrieval, prompts, or corpus, run the relevant golden subset. The metrics are the definition of done.
+- **Eval every phase, not just Phase 7.** After any change to ingestion, retrieval, prompts, or corpus, run the relevant golden subset. The metrics are the definition of done. **[Suspended by standing decision, 2026-07-18 — see §D.]** For this project, formal golden-subset runs (Phase D's 24-item and Phase E's 64-item) are deferred to one comprehensive run after the whole app is built, not phase-by-phase — item-level verification (targeted live probes against specific golden questions after each fix) has substituted for the formal harness run in the interim, and no known open item-level issue remains as of Phase E. Resume the "eval every phase" cadence once that first full run happens, if further pipeline/prompt changes follow it.
 - **Snapshots are immutable; promote only on a clean validation.** Every answer records its `snapshot_id`.
 - **Prompt-cache hygiene:** stable system prefix cached; user text + snapshot date strictly after the breakpoint; verify hits.
 - **Never let a failure fabricate.** Every path ends in a grounded answer, an honest gap, a refusal, or a retry (system design §15).
