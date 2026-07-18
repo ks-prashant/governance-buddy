@@ -68,7 +68,6 @@ export const Route = createFileRoute("/api/generate")({
                   rl.reason === "session"
                     ? "You've hit the request limit for this session. Please wait a few minutes and try again."
                     : "This network has hit the request limit. Please wait a while and try again.",
-                _debug_rl: rl.debug,
               },
               { status: 429 },
             );
@@ -76,7 +75,7 @@ export const Route = createFileRoute("/api/generate")({
 
           if (!wantStream) {
             const result = await collectPipeline(supabaseAdmin, input, { frameworkId, model });
-            return json({ ...result, _debug_rl: rl.debug });
+            return json(result);
           }
         } catch (err) {
           console.error("generate endpoint setup failed:", err);

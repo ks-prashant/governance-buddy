@@ -17,7 +17,6 @@ import { RATE_LIMIT } from "./config";
 export interface RateLimitResult {
   allowed: boolean;
   reason?: "session" | "ip";
-  debug?: { sessionCount: number | null; ipCount: number | null; sessionErr?: string; ipErr?: string; insertErr?: string };
 }
 
 export async function checkAndRecordRateLimit(
@@ -33,7 +32,7 @@ export async function checkAndRecordRateLimit(
     // legitimate user from a real answer (system design §15's "never fabricate, but
     // also never let an ops problem masquerade as a product failure").
     console.error("rate-limit insert failed (failing open):", insertError.message);
-    return { allowed: true, debug: { sessionCount: null, ipCount: null, insertErr: insertError.message } };
+    return { allowed: true };
   }
 
   const sessionSince = new Date(Date.now() - RATE_LIMIT.sessionWindowMinutes * 60_000).toISOString();
@@ -43,6 +42,9 @@ export async function checkAndRecordRateLimit(
     .eq("session_id", sessionId)
     .gte("ts", sessionSince);
   if (sessionErr) console.error("rate-limit session count failed:", sessionErr.message);
+  if (!sessionErr && (sessionCount ?? 0) > RATE_LIMIT.perSessionMax) {
+    return { allowed: false, reason: "session" };
+  }
 
   const ipSince = new Date(Date.now() - RATE_LIMIT.ipWindowMinutes * 60_000).toISOString();
   const { count: ipCount, error: ipErr } = await db
@@ -51,22 +53,11 @@ export async function checkAndRecordRateLimit(
     .eq("ip", ip)
     .gte("ts", ipSince);
   if (ipErr) console.error("rate-limit ip count failed:", ipErr.message);
-
-  const debug = {
-    sessionCount: sessionCount ?? null,
-    ipCount: ipCount ?? null,
-    sessionErr: sessionErr?.message,
-    ipErr: ipErr?.message,
-  };
-
-  if (!sessionErr && (sessionCount ?? 0) > RATE_LIMIT.perSessionMax) {
-    return { allowed: false, reason: "session", debug };
-  }
   if (!ipErr && (ipCount ?? 0) > RATE_LIMIT.perIpMax) {
-    return { allowed: false, reason: "ip", debug };
+    return { allowed: false, reason: "ip" };
   }
 
-  return { allowed: true, debug };
+  return { allowed: true };
 }
 
 /** Best-effort real client IP from Cloudflare/standard proxy headers. */
