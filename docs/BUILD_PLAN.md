@@ -29,14 +29,60 @@ re-deriving it from git log or re-reading every phase section.
 | B — GDPR ingestion | ✅ Done | 99/99 articles, 173/173 recitals, 22/22 golden anchors |
 | C — Retrieval | ✅ Done | 7/7 retrieval-hit-rate on GDPR slice |
 | D — Grounded generation + validation | 🟡 Built, fixed, code-reviewed — **formal eval gate not yet re-measured** | first run: groundedness 93.3% FAIL, correct-refusal 83.3% FAIL, citation 93.8% PASS. 3 root-cause fixes applied + deployed since. |
-| E — Full corpus + cross-framework | 🟡 Code done: parsers (4/4), combined-snapshot loader + migration 0005, 5-dim decomposition, cross-framework citation pinning, conflicts seed script. Pending: the DB migration + combined ingestion + conflict seed must RUN in Lovable's sandbox (service-role key lives there); full 64-item eval still deferred on Anthropic budget | all 5 frameworks pass validate; retrieval/pipeline changes tsc-clean |
+| E — Full corpus + cross-framework | 🟡 Steps 1-4 DONE: parsers, combined 5-framework snapshot LIVE + promoted (630 parents/1573 chunks), 5-dim decomposition confirmed working live, conflicts seeded (4/4). 1 real bug found+fixed+verified (generate.ts gaps coercion). 2 gaps flagged for design (ADV-03/ADV-12, CONF-01-family). Step 5 (full 64-item eval) deferred on Anthropic budget (~$1.7-2.1 left, needs ~$6-12) AND on the CONF sufficiency-gate question | all 5 frameworks pass validate; combined snapshot verified live via real cross-framework queries (EU AI Act + GDPR citing correctly together) |
 | F — Hero UI | ⬜ Not started | — |
 | G–J | ⬜ Not started | — |
 
 ### Session log (most recent first)
 
-**2026-07-18 (latest+3) — Phase E code (steps 2–4) done; DB-side execution pending on
-Lovable.** User confirmed Voyage credits are available, so ingestion is unblocked. Wrote the
+**2026-07-18 (latest+4) — Phase E steps 2-4 EXECUTED: combined 5-framework snapshot live,
+1 real bug found+fixed, 1 new gap flagged.** Ran the DB-side execution the entry below left
+pending. Had Lovable's agent (via `send_message`, a data-ops-only instruction — no code
+changes authorized) apply migration 0005 and run the combined loader + conflicts seed in
+its sandbox, where the service-role key lives. Result: **`bun ingestion/run.ts gdpr
+eu_ai_act nist_csf nist_ssdf nist_ai_rmf`** — all 5 validated PASS, loaded into ONE snapshot
+`eecc9e2f-5cfd-481b-9cda-ba1b94ad342d` (630 parents / 1,573 chunks total: gdpr 272p/562c,
+eu_ai_act 306p/784c, nist_csf 22p/106c, nist_ssdf 19p/42c, nist_ai_rmf 11p/79c), promoted
+active. **`bun ingestion/seed_conflicts.ts`** — 4/4 CONF pairs seeded. Lovable applied the
+migration under its own Supabase-timestamped filename and pushed directly to `main`
+(`505d4d8`) — pulled it, then deleted the now-redundant local `0005_...sql` (identical SQL;
+Lovable's copy is the canonical applied record).
+**End-to-end verification found a real bug:** a live query against the new EU AI Act
+content (`Annex III(5)(b)` credit-scoring) returned `behavior: "error"` — a raw, unhandled
+`ZodError` (`gaps` expected array, got string) leaking to the user as JSON issue text.
+Root cause: `generate.ts`'s `ObligationMapSchema.parse(call.input)` had no defensive
+coercion for `gaps`, unlike this file's own established pattern for `supporting_chunk_ids`
+(documented inline: "don't crash the whole response over one field's shape drift"). Fixed
+with `z.preprocess` to coerce a lone string to a one-element array (commit `8c42fb8`,
+deployed and **re-verified**: the same query now returns a correct, well-cited cross-
+framework answer — `EU AI Act Annex III(5)`, `Recital 58`, plus a real `GDPR Recital 71`
+cross-reference). A second spot-check (credit-scoring system description) also produced a
+rich, correctly-cited cross-framework answer spanning EU AI Act + GDPR, confirming the
+five-dimension decomposition + combined-corpus retrieval are working end-to-end.
+**New gap flagged (not fixed — needs design thought, same reasoning as ADV-03/ADV-12):**
+CONF-01's *exact* golden-set wording ("To test our model for bias we'd need to collect
+applicants' ethnicity, but privacy rules push us to collect less sensitive data. How do
+these frameworks pull here?") gets `clarify` instead of the expected `answer`. The
+sufficiency gate in `understand.ts` demands decision-impact and deployment-region signal
+even though the core documented tension (bias-testing data vs. minimisation, GDPR Art.
+5(1)(c)/9(1) vs. EU AI Act Art. 10(5)) doesn't strictly need those to be answerable. This
+is broader than the earlier named-external-regime fix (Phase D session) — a general
+question of how aggressively the sufficiency gate should demand all four attributes vs.
+judging whether the *specific* tension is answerable with what's given. Not attempted
+blind; flagged for a future session alongside ADV-03/ADV-12.
+**Phase E status: steps 2–4 done** (combined snapshot loaded+promoted, five-dimension
+decomposition confirmed working live, conflicts seeded — `conflicts_with` wiring in
+generate.ts/assemble.ts was already in place from Phase D). **Step 5 (full 64-item eval)
+intentionally not run this entry** — still Anthropic-budget-gated (~$6–12 needed, ~$1.7–2.1
+estimated remaining), and now also blocked on deciding the CONF-01 sufficiency-gate
+question first (a full run would grade CONF-01..04 against `answer` and likely fail them
+the same way). **Next action:** discuss with user whether to (a) invest a small probe to
+characterize the sufficiency-gate strictness question before fixing, (b) fix directly with
+a scoped adjustment, or (c) defer both open gaps (ADV-03/ADV-12, CONF-01-family) to design
+together before spending on Phase E's full eval.
+
+**2026-07-18 (latest+3) — Phase E code (steps 2–4) done; DB-side execution EXECUTED — see
+entry above.** User confirmed Voyage credits are available, so ingestion is unblocked. Wrote the
 code half of Phase E and pushed (`3cc0b9f`):
 - **migration 0005** — widen `chunks_citation_label_unique_idx` to
   `(snapshot_id, framework_id, citation_label)`. The old 2-col index would reject the
