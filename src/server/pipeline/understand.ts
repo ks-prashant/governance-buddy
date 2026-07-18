@@ -63,7 +63,12 @@ const TOOL: LlmTool = {
           "compliant?') — these presuppose a system but describe none of its attributes. " +
           "direct_question: a standalone question about a framework/article/topic that does " +
           "NOT presuppose an undescribed system of the user's own (e.g. 'what does GDPR " +
-          "Article 22 say?').",
+          "Article 22 say?'). IMPORTANT: if the question NAMES a specific law, regulation, " +
+          "or standard (e.g. 'HIPAA', 'the CCPA', \"New York City's bias-audit law\", 'LGPD', " +
+          "'UK GDPR') as its subject, classify it direct_question EVEN IF it also uses " +
+          "possessive framing like 'our AI' or 'our system' — more system detail would not " +
+          "change whether that named regime is answerable; only corpus coverage does, which " +
+          "is checked downstream, not here.",
       },
       sufficient: {
         type: "boolean",
@@ -130,7 +135,16 @@ Classify input_type:
 - "direct_question": a standalone question about a framework, article, or general
   governance topic that does NOT presuppose an undescribed system of the user's own —
   e.g. "what does GDPR Article 22 say?", "what are the lawful bases for processing under
-  GDPR?". These can be answered without knowing anything about "our system".
+  GDPR?". These can be answered without knowing anything about "our system". This
+  includes questions that NAME a specific external law/regulation/standard as their
+  subject (e.g. "does HIPAA apply to our AI's use of patient data?", "how does UK GDPR
+  differ from EU GDPR for our system?") — classify these direct_question EVEN THOUGH they
+  use "our AI"/"our system" phrasing. The test is whether MORE SYSTEM DETAIL would change
+  the answer: for a named external regime, it would not — either that regime is in the
+  corpus and answerable, or it isn't and the honest answer is "not in the current corpus,"
+  which retrieval determines, not more description. Reserve the sufficiency/clarify path
+  for inputs that do NOT name a specific external framework (a generic "is our app
+  compliant?" or a thin feature description with no named law at all).
 
 Sufficiency: for "system_description" (including the bare-compliance-question case
 above), sufficient only if the input gives enough signal on what the system does, what
