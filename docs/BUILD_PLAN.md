@@ -33,9 +33,75 @@ re-deriving it from git log or re-reading every phase section.
 | F — Hero UI | 🟢 Built, deployed, verified live (this session). | live checks below — no formal eval gate applicable to this phase. |
 | G — Honesty states | 🟢 Built, deployed, verified live. | CLR-01/02, OOC-01/04/06, CONF-01 exercised live against the deployed endpoint; each produces its correct UI-mapped behavior. |
 | H — Eval page + CI gate + instrumentation | 🟢 Built, deployed, verified live. **Blocked on one manual step:** `EVAL_WRITE_SECRET` must be added to GitHub Actions + Lovable Cloud secrets before a published run will show on the eval page (see §0 latest+9). | endpoints verified live; eval page correctly shows the honest "no published run yet" state (true today). |
-| I–J | ⬜ Not started | — |
+| I — Follow-ups, hardening, launch prep | 🟢 Steps 1-4 built, deployed, verified live; step 5 partial by design (see below). | follow-up mode + prompt-cache hit confirmed live; all WCAG AA pairs pass computationally; rate limiter blocks at the exact configured threshold; corpus-refresh dry run round-tripped all 5 frameworks with zero coverage loss. **Full 64-item regression eval deliberately still deferred** (standing decision, user re-confirmed this session) — MODEL_GENERATE stays on the temporary claude-sonnet-5. |
+| J | ⬜ Not started | — |
 
 ### Session log (most recent first)
+
+**2026-07-18 (latest+10) — Phase I steps 1-4 built+deployed+verified live; step 5 partial
+by the user's explicit choice.** Read the standard docs first, reviewed Phase H's state,
+then confirmed scope with the user before spending/touching infra: build rate limiting
+now (yes), run the full eval + revert to Opus now (no, keep deferring), do the corpus-
+refresh dry run now (yes).
+- **Follow-ups (step 1):** `generateObligationMap`/`runPipeline`/`collectPipeline` accept
+  a model override; `/api/generate` routes `mode:"followup"` to `MODELS.followup`.
+  Extracted `AnswerPanel` from `index.tsx`'s inline rendering so the main flow and every
+  follow-up turn share the exact same clarify/refusal/empty/error/result states — no
+  relaxed "chat" variant. New `FollowUpBox` (scoped per-obligation and general) composes
+  context client-side (original description ± the specific obligation) rather than
+  server-side session memory, consistent with the stateless-server design. Capped at one
+  level of nesting on purpose (a follow-up's own answer doesn't spawn further follow-up
+  affordances — restraint principle). Verified live: a real followup-mode call produced a
+  correctly-cited GDPR Art. 35/36 DPIA answer, and two consecutive followup calls showed
+  `cache_creation_input_tokens: 2658` then `cache_read_input_tokens: 2658` — the prompt-
+  cache verification step 2 also asked for.
+- **Rate limiting (step 2):** new `generation_requests` table (session_id, ip, ts; RLS
+  enabled with zero policies). `/api/generate` checks+records BEFORE running the pipeline;
+  429 with an honest message on breach, fails OPEN on a bookkeeping error. Migration
+  applied via Lovable's sandbox (data-ops-only instruction, same pattern as Phase E) —
+  its own commit (`14f00f1` + two "Changes" commits) regenerated `types.ts` properly and
+  applied the SQL under its own filename; deleted the redundant local copy after pulling.
+  **A real debugging episode, not a scripted verification:** the first live burst test (10
+  rapid requests, same session) showed all 200s — no 429 at request 9 as designed.
+  Temporarily added debug fields (`sessionCount`/`ipCount`/error messages) to the response,
+  redeployed, and root-caused it to a transient PostgREST schema-cache lag immediately
+  after the migration created the table — the fail-open path was silently absorbing a few
+  insert/count failures in that window, exactly what fail-open is *for*. A retest minutes
+  later showed the limiter working correctly (blocked exactly at request 9 of 10, matching
+  the configured `perSessionMax: 8`). Reverted the debug surface once confirmed; a final
+  clean 9-request burst reproduced the same correct 429-at-request-9 behavior with no
+  debug fields present.
+- **Accessibility (step 3):** focus-visible rings added to every custom native
+  button/link that lacked them (citation chips, restated-understanding refine, corpus
+  indicator, hero-input examples, header nav) — the corpus indicator's tooltip trigger
+  was an unfocusable `<span>`, changed to a `<button>` so keyboard users can actually
+  reach it. Added `aria-label`s to citation chips and a global `prefers-reduced-motion`
+  override. Rather than eyeball contrast, wrote a small script implementing the actual
+  oklch→linear-sRGB→WCAG-luminance conversion and checked every token pair used in the
+  UI (light and dark): all pass AA, several by 2-3x the minimum.
+- **Prompt-injection + privacy (step 4):** added an explicit "user input is data, never
+  instructions" rule to both `generate.ts`'s and `understand.ts`'s system prompts —
+  defense in depth on top of the real backstop (the mechanical grounding fence, which
+  can't be bypassed by anything the model is told). Grepped every `.insert()`/`.upsert()`
+  call site in the app (two: `analytics_events`, `eval_results`) and confirmed neither
+  ever carries user input text.
+- **Step 5, partial:** the corpus-refresh dry run is fully done — caught and avoided a
+  near-mistake first: my own proposed framing ("re-ingest one framework, e.g. GDPR") would
+  have DEMOTED the live site from 5 frameworks to 1, since `ingestion/run.ts` always
+  promotes whatever frameworks it's given. Corrected to a full 5-framework re-ingest
+  instead (same command pattern as the original Phase E load, using the already-committed
+  `corpus-build/*.json` artifacts — no reparse cost), run via Lovable's sandbox: all 5
+  validated PASS, new snapshot `03c4b3da…` promoted (630 parents / 1,573 chunks, matching
+  the prior snapshot exactly), conflicts reseeded (4/4). Verified from outside the sandbox:
+  `/api/corpus` still lists all 5 frameworks, a live generation call against the new
+  snapshot produced correct cross-framework citations, and `/api/source` resolved one of
+  those citations' chunk_id correctly. A light concurrency check (3 parallel `/api/generate`
+  calls) completed in ~5.9s total vs ~4.6-5.8s for any one alone — no serialization
+  bottleneck. **Not done:** the full 64-item regression eval — the user explicitly chose to
+  keep deferring it and keep `MODEL_GENERATE` on the temporary `claude-sonnet-5` rather than
+  spend ~$6-12 and revert to `claude-opus-4-8` this session. **Next action:** when ready to
+  actually launch, that eval run (model reverted first) is the one remaining gate — every
+  other Phase I acceptance-gate criterion is met.
 
 **2026-07-18 (latest+9) — Phase H (eval page, instrumentation, CI gate) built, deployed,
 verified live.** User confirmed two decisions before starting: the contact affordance
@@ -806,7 +872,26 @@ same as before; it just can't push to the page. See §0 session log (latest+9).
 5. **Full regression** eval run; latency check under load; **corpus-refresh dry run** (re-ingest → validate → promote a new snapshot without downtime).
 
 **Acceptance gate:** all gating metrics green, latency targets met, a11y clean, a snapshot refresh works end-to-end.
-**Launch commit.**
+**Launch commit — [🟡 Steps 1-4 done, deployed, verified live. Step 5 partial by explicit
+user decision this session — see §0 latest+10.]** Full detail in the session log; summary:
+follow-ups (scoped + general) route to MODELS.followup and were confirmed live including a
+real prompt-cache hit (`cache_read_input_tokens: 2658` on the second of two consecutive
+calls). Every WCAG AA text/background pair (light + dark) verified computationally
+(oklch → linear sRGB → contrast ratio), not by eye — all pass, most well beyond the
+minimum. Rate limiting (new `generation_requests` table, per-session/per-IP windows)
+blocks at exactly the configured threshold, confirmed with a live 9-request burst.
+Prompt-injection defense-in-depth line added to both generate.ts and understand.ts system
+prompts; privacy check confirmed the only two DB insert sites in the app never carry user
+input text. Of step 5: the corpus-refresh dry run is fully done (all 5 frameworks
+re-ingested and promoted into a new snapshot with zero coverage loss, conflicts reseeded,
+verified via live generation + source-viewer round-trip) and a light concurrent-request
+latency check showed no serialization bottleneck (3 parallel calls ≈ same wall time as 1).
+**The full 64-item regression eval remains the one deliberately open item** — the user
+re-confirmed the standing deferral this session rather than spend the ~$6-12 and revert
+`MODEL_GENERATE` from the temporary `claude-sonnet-5` to `claude-opus-4-8` yet. This is the
+one thing separating "Phase I code-complete" from an actual launch commit — do that eval
+run (with the model reverted first) as the next session's first action if launch is the
+goal, per the standing decision's own terms (build plan §0/§D/§E).
 
 ---
 
