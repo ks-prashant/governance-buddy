@@ -55,7 +55,13 @@ const ObligationSchema = z.object({
 
 const ObligationMapSchema = z.object({
   obligations: z.array(ObligationSchema),
-  gaps: z.array(z.string()),
+  // Coerce a lone string to a one-element array: observed in practice under forced
+  // tool-use (the model occasionally emits gaps as a plain string instead of an array
+  // when there's exactly one gap) — matches this file's existing philosophy of not
+  // crashing the whole response over one field's shape drift (see supporting_chunk_ids
+  // above). A raw .parse() failure here previously surfaced as a bare ZodError message
+  // to the user via collectPipeline's catch-all.
+  gaps: z.preprocess((v) => (typeof v === "string" ? [v] : v), z.array(z.string())),
   overall_confidence: z.enum(["high", "medium", "low"]),
 });
 
