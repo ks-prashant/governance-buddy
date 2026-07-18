@@ -59,7 +59,9 @@ async function callJudge(prompt) {
     },
     body: JSON.stringify({
       model: JUDGE_MODEL,
-      max_tokens: 2000,
+      max_tokens: 6000, // Prompt B's per-claim/per-citation breakdown can legitimately
+      // exceed 2000 tokens for a thorough answer with many citations — a truncated
+      // judge response risks parsing a partial claim as a false "contradicted"/miss.
       messages: [{ role: "user", content: prompt }],
     }),
   });

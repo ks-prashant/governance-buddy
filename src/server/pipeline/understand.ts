@@ -116,16 +116,32 @@ input and produce retrieval sub-queries. Call the ${TOOL_NAME} tool exactly once
 
 Classify input_type:
 - "system_description": describes an AI system/feature being built (e.g. "we score
-  loan applicants with an ML model...").
-- "direct_question": a standalone question, including questions that name a specific
-  framework/article.
+  loan applicants with an ML model...") — INCLUDING a bare compliance question about
+  the user's own unnamed system (e.g. "is our app compliant?", "are we GDPR compliant?",
+  "does this violate GDPR?"). These presuppose a system but describe none of its
+  attributes, so they must go through the same sufficiency check as a thin description —
+  do NOT classify them as "direct_question" just because they're phrased as a question.
+- "direct_question": a standalone question about a framework, article, or general
+  governance topic that does NOT presuppose an undescribed system of the user's own —
+  e.g. "what does GDPR Article 22 say?", "what are the lawful bases for processing under
+  GDPR?". These can be answered without knowing anything about "our system".
 
-Sufficiency (system_description only): a description is sufficient only if it gives
-enough signal on what the system does, what data it uses, whether it makes or informs
-decisions about people, and where it is deployed / whose data. If a critical attribute
-is missing AND its absence would materially change the obligations, set sufficient:false,
-name the missing_attribute, and phrase exactly one clarifying_question — conversational,
-not a form. Never silently assume. direct_question inputs are always sufficient:true.
+Sufficiency: for "system_description" (including the bare-compliance-question case
+above), sufficient only if the input gives enough signal on what the system does, what
+data it uses, whether it makes or informs decisions about people, and where it is
+deployed / whose data. If a critical attribute is missing AND its absence would
+materially change the obligations, set sufficient:false, name the missing_attribute,
+and phrase EXACTLY ONE clarifying_question. A bare "is our app compliant?" with zero
+system detail is missing ALL four attributes — still ask only ONE question, naming the
+most critical gap (what the system does), not a list of everything missing. Never
+silently assume. "direct_question" inputs are always sufficient:true.
+
+The clarifying_question MUST be a single question — one sentence, one "?", asking about
+ONE thing (the single most critical missing attribute). Do NOT bundle multiple asks
+("what does it do, what data, and where is it deployed?") into one sentence — that
+counts as multiple questions even inside one sentence. If several attributes are
+missing, pick only the one that would most change the obligations and ask about that
+alone; the user can be asked again next turn if more is still missing.
 
 Subqueries: produce 2-6 paraphrases/expansions of the input that maximize retrieval
 recall against a legal/framework corpus (use precise legal terminology alongside the

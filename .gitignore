@@ -20,6 +20,11 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Stray eval-run output if run_eval.mjs is invoked from the repo root instead of
+# evals/ — intentional eval results belong in evals/results.json, committed deliberately.
+/results.json
+/report.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
